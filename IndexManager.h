@@ -1,31 +1,110 @@
-#ifndef _INDEXMANAGER_H_
-#define _INDEXMANAGER_H_
-
+#include<iostream>
+#include "BufferManager.h"
+#include "BpTree.h"
 #include "Minisql.h"
-#include "bplus.h"
-using namespace std;
+// #include"key.h"
+#define KEY char*
+#define MaxOffsetPos 0
+#define TypePos 4
+#define RootPos 6
+extern BufferManager bf;
 
-class Value_offset{
-public:
-	string s;
-	int off;
+class IndexManager{
+  public:
+    std::string GetFileName(Index index);
+    void CreateIndexHead(Index index, short type);
+    void Insert(Index index, std::string key, int val);
+    int Search(Index index, std::string key);
+    void Delete(Index index, std::string key);
 };
+std::string IndexManager::GetFileName(Index index)
+{
+  return index.index_name + "-" + index.table_name + ".idx";
+}
 
-//automatically create index on primary key
-void CreateIndex(string index_name, int attr_type);//0 int,1 float,2 string
-//CREATE INDEX NAME ON NAME '(' NAME ')'
+void IndexManager::CreateIndexHead(Index index, short type)
+{
+  std::string name=GetFileName(index);
+  int blockNum=bf.AddNewBlockToFile(name,0);
+  char newData[BlockMaxSize];
+  *(bool*)(newData)=true;
+  *(int*)(newData+TypePos)=type;
+  *(int*)(newData+RootPos)=0;
+  bf.WriteData(blockNum,newData,0,BlockMaxSize);
+}
 
-void CreateIndex(vector<Value_offset> values, string index_name, int attr_type);
+void IndexManager::Insert(Index index, std::string key, int val)
+{
+  std::string name=GetFileName(index);
+  int blockNum=bf.FindBlock(name,0);
+  char* fileHead=bf.ReadBlockData(blockNum);
+  short type=*(short*)(fileHead+TypePos);
+  int rootOffset,rootNum;
+  rootOffset=*(int*)(fileHead+RootPos);
+  if(rootOffset==0)
+  {
+    rootNum=bf.AddNewBlockToFile(name,1);
+    rootOffset=1;
+    char newData[MaxBlockNum];
+    *(bool *)(newData+ValidPos)=true;
+    *(bool *)(newData+TypePos)=true;
+    *(short *)(newData+StorePos)=0;
+    *(short *)(newData + WidthPos) = ((BlockMaxSize - BlockAttSpace) / (KeyLength + 4));
+    *(int *)(newData+ParentPos)=0;
+    bf.WriteData(rootNum, newData, 0, BlockMaxSize);
+  }
+  else 
+  {
+    rootNum=bf.FindBlock(name,rootOffset);
+  }
+  BpTree root(name, rootOffset, rootNum, type);
+  int newRoot=root.InsertToLeaf(key.data(),val);
+  bf.Unlock(rootNum);
+  if(newRoot!=0) bf.WriteData(blockNum,(char*)&newRoot,RootPos,4);
+  bf.Unlock(blockNum);
+}
 
-void InsertIndex(string index_name, string value, int offset);
+int IndexManager::Search(Index index, std::string key)
+{
+  std::string name=GetFileName(index);
+  int blockNum = bf.FindBlock(name, 0);
+  char *fileHead = bf.ReadBlockData(blockNum);
+  short type = *(short *)(fileHead + TypePos);
+  int rootOffset, rootNum;
+  rootOffset = *(int *)(fileHead + RootPos);
 
-void DeleteIndex(string index_name, string value);
+  // char result[BlockMaxSize];
 
-vector<int> Find_indices(string index_name, string op,string value);
+  if(rootOffset==0)
+  {
+    return 0;
+  }
+  else 
+  {
+    rootNum=bf.FindBlock(name,rootOffset);
+    BpTree root(name,rootOffset,rootNum,type);
+    int val=root.SearchKey(key.data());
+    return val;
+  }
+}
 
-void disre(node *p, int q,string filename);
+void IndexManager::Delete(Index index, std::string key)
+{
+  std::string name=GetFileName(index);
+  int blockNum = bf.FindBlock(name, 0);
+  char *fileHead = bf.ReadBlockData(blockNum);
+  short type = *(short *)(fileHead + TypePos);
+  int rootOffset, rootNum;
+  rootOffset = *(int *)(fileHead + RootPos);
 
-void dis(string filename);
-
-#endif
-
+  if(rootOffset!=0)
+  {
+    rootNum = bf.FindBlock(name, rootOffset);
+    BpTree root(name, rootOffset, rootNum, type);
+    int newRoot = root.DeleteKey(key.data());
+    bf.Unlock(rootNum);
+    if (newRoot != 0)
+      bf.WriteData(blockNum, (char *)&newRoot, RootPos, 4);
+  }
+    bf.Unlock(blockNum);
+}
