@@ -232,20 +232,20 @@ void API_Insert(string table_name, string Values) //error
 //inside function when operate on the log
 void API_Select(string table_name, vector<string> & attr, string WClause)
 {
-    //create iterator
-    ConditionList::iterator it;
-
-    ConditionList WithIndexList,WithoutIndexList;
-    Table tb = Read_Table_Info(table_name);
-   //traversal condition list
-    for(it = Slist.begin(); it != Slist.end(); it++)
+    if(!CTM.TableExist(table_name))
     {
-        //int ID = tb.searchAttrId(it->attr_name);
-        if(Find_index_name(table_name, it->attr_name) == "")
-            WithoutIndexList.push_back(*it);
-        else
-            WithIndexList.push_back(*it);
+        cerr<<"ERROR:"<<"NO SUCH TABLE!"<<endl;
+        return;
     }
+    Table tb = CTM.ReadTable(table_name);
+    Record record;
+    int i,j;
+    int pos1 = 0,pos2;
+    int end = 0;
+    
+    
+    
+    
     vector<int> va,vb,vd;
     vector<int>::iterator mIter;
     string index_name;
