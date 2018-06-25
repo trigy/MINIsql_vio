@@ -59,9 +59,9 @@ void API_DropTable(string table_name)
 void API_Create_Index(Index& index)
 {
     int x = CTM.IndexOffset(index.table_name, index.index_name);
-    CTM.CreateIndex(index);
     if(x == -1)
     {
+        CTM.CreateIndex(index);
         int i;
         //select firstly
         //select* from table_name
@@ -75,6 +75,9 @@ void API_Create_Index(Index& index)
         cout<<"QUERY OK, 0 rows affected"<<endl;
     }
     else
+    {
+        cout<<"ERROR : index has already exists"<<endl;
+    }
 }
 
 
@@ -126,7 +129,7 @@ void API_Insert(string table_name, string Values) //error
                 return ;
             }
             end = pos2;
-            string x = Values.substr(pos1,pos2-1-pos1);
+            string x = Values.substr(pos1,pos2-pos1);
             if(atof(x.c_str()) == 0)
             {
                 cerr<<"ERROR:"<<i<<"'s attribute require number"<<endl;
@@ -148,7 +151,7 @@ void API_Insert(string table_name, string Values) //error
                 return ;
             }
             end = pos2+1;
-            string x = Values.substr(pos1,pos2-1-pos1);
+            string x = Values.substr(pos1+1,pos2-2-pos1);
             if(x.length() != tb.attrs[i].attr_type)
             {
                 cerr<<"ERROR: wrong bits char"<<endl;
@@ -175,7 +178,7 @@ void API_Insert(string table_name, string Values) //error
             cerr<<"ERROR: not enough values"<<endl;
             return ;
         }
-        string x = Values.substr(pos1,pos2-pos1);
+        string x = Values.substr(pos1,pos2-pos1+1);
         if(atof(x.c_str()) == 0)
         {
             cerr<<"ERROR:"<<i<<"'s attribute require number"<<endl;
@@ -250,7 +253,7 @@ void API_Insert(string table_name, string Values) //error
 
 
 //inside function when operate on the log
-void API_Select(string table_name, vector<string> & attr, string WClause)
+void API_Select(string table_name, vector<string> & attr, string WClasue)
 {
     if(!CTM.TableExist(table_name))
     {
@@ -263,7 +266,57 @@ void API_Select(string table_name, vector<string> & attr, string WClause)
     int pos1 = 0,pos2;
     int end = 0;
     ConditionList Slist;
+    while( (i = WClasue.find(' ',i)) != string::npos)
+        WClasue.erase(i,1);
+    //delete the space
+    while(1)
+    {
+        unsigned long a = min(WClasue.find("==",pos1),WClasue.find(">=",pos1));
+        a = min(a,WClasue.find(">=",pos1));
+        a = min(a,WClasue.find(">",pos1));
+        a = min(a,WClasue.find("<",pos1));
+        a = min(a,WClasue.find("<=",pos1));
+        a = min(a,WClasue.find("<>",pos1));
+        if((int)a == -1)
+        {
+            if(Slist.empty())
+            {
+                cout<<"ERROR: invalid condition after 'where' "<<endl;
+                return;
+            }
+        }
+        string attr_name,op,com_val;
+        switch (WClasue[a])
+        {
+            case '>':
+                if(WClasue[a+1] == '=')
+                    op = WClasue.substr(a,2);
+                else op = WClasue.substr(a,1);
+                break;
+            case '<':
+                if(WClasue[a+1] == '=' || WClasue[a+1] == '>') op = WClasue.substr(a,2);
+                else op = WClasue.substr(a,1);
+                break;
+            case '=':
+                op = WClasue.substr(a,2);
+                break;
+            default:
+                break;
+        }
+        attr_name = WClasue.substr(pos1,a-pos1);
+        pos2 = WClasue.find("and",pos1);
+        if(pos2 == -1)
+            break;
+        pos1 = a + op.length();
+        if(WClasue[pos1] == '\'')
+            com_val = WClasue.substr(pos1+1,pos2-2-pos1);
+        else com_val = WClasue.substr(pos1+1,pos2-pos1);
+        pos1 = pos2 + 3;
+        Condition NCon(attr_name,op,com_val);
+        Slist.push_back(NCon);
+    }
     
+    i= 0;
     vector<int> vd = Select(Slist[i].attr_name,Slist[i].cmp_value,Slist[i].cmp_value);
     sort(vd.begin(), vd.end());
     vd.erase(unique(vd.begin(), vd.end()),vd.end());
@@ -295,74 +348,75 @@ void API_Select(string table_name, vector<string> & attr, string WClause)
 
 void API_Delete(string table_name,string WClasue)//undo
 {
-    //the same as select
-    //create iterator
-    ConditionList::iterator it;
-    
-    ConditionList WithIndexList,WithoutIndexList;
-    Table tb = Read_Table_Info(table_name);
-    //traversal condition list
-    for(it = Dlist.begin(); it != Dlist.end(); it++)
+    if(!CTM.TableExist(table_name))
     {
-        //int ID = tb.searchAttrId(it->attr_name);
-        if(Find_index_name(table_name, it->attr_name) == "")
-            WithoutIndexList.push_back(*it);
-        else
-            WithIndexList.push_back(*it);
-    }
-    vector<int> va,vb,vd;
-    vector<int>::iterator mIter;
-    string index_name;
-    
-    //if no index
-    if(WithIndexList.empty())
-    {
-        //extern string delete_values[32];
-        for(int i = 0; i < 32;i ++)
-            delete_values[i] = "";
-        delete_num = 0;
-        
-        //delete record
-        DeleteTuple(vd, tb, Dlist);
-        
-        /*********/
-        cout<<"Query OK, "<<delete_num<<" rows affected"<<endl;
-        
-        if(select_num == 0)
-            return;
-        //遍历该表的attribute，找value，找index_name，delete
-        for (int i = 0; i < tb.attr_num; i++)
-        {
-            //找条件列表中含索引项的属性的value和索引名
-            //index_name
-            string index_name = Find_index_name(table_name, tb.attrs[i].attr_name);
-            //先确定属性有无索引, 无索引则直接进入下一循环
-            if (index_name == "") {
-                continue;
-            }
-            //取出delete_values的第i列，即为要B+树删除的value
-            vector<string> vs = split(delete_values[i], "\t");
-            //将该列的value逐一删除
-            for (int j = 0; j < vs.size(); j++)
-                DeleteIndex(index_name, vs[j]);
-            
-        }
+        cerr<<"ERROR:"<<"NO SUCH TABLE!"<<endl;
         return;
     }
-    it = WithIndexList.begin();
-    index_name = Find_index_name(table_name, it->attr_name);
-    vd = Find_indices(index_name, it->operation, it->cmp_value);
-    
-    //sort
+    Table tb = CTM.ReadTable(table_name);
+    Record record;
+    int i = 0,count;
+    int pos1 = 0,pos2;
+    int end = 0;
+    ConditionList Slist;
+    while( (i = WClasue.find(' ',i)) != string::npos)
+        WClasue.erase(i,1);
+    //delete the space
+    while(1)
+    {
+        unsigned long a = min(WClasue.find("==",pos1),WClasue.find(">=",pos1));
+        a = min(a,WClasue.find(">=",pos1));
+        a = min(a,WClasue.find(">",pos1));
+        a = min(a,WClasue.find("<",pos1));
+        a = min(a,WClasue.find("<=",pos1));
+        a = min(a,WClasue.find("<>",pos1));
+        if((int)a == -1)
+        {
+            if(Slist.empty())
+            {
+                cout<<"ERROR: invalid condition after 'where' "<<endl;
+                return;
+            }
+        }
+        string attr_name,op,com_val;
+        switch (WClasue[a])
+        {
+            case '>':
+                if(WClasue[a+1] == '=')
+                    op = WClasue.substr(a,2);
+                else op = WClasue.substr(a,1);
+                break;
+            case '<':
+                if(WClasue[a+1] == '=' || WClasue[a+1] == '>') op = WClasue.substr(a,2);
+                else op = WClasue.substr(a,1);
+                break;
+            case '=':
+                op = WClasue.substr(a,2);
+                break;
+            default:
+                break;
+        }
+        attr_name = WClasue.substr(pos1,a-pos1);
+        pos2 = WClasue.find("and",pos1);
+        if(pos2 == -1)
+            break;
+        pos1 = a + op.length();
+        if(WClasue[pos1] == '\'')
+            com_val = WClasue.substr(pos1+1,pos2-2-pos1);
+        else com_val = WClasue.substr(pos1+1,pos2-pos1);
+        pos1 = pos2 + 3;
+        Condition NCon(attr_name,op,com_val);
+        Slist.push_back(NCon);
+    }
+    i= 0;
+    vector<int> vd = Select(Slist[i].attr_name,Slist[i].cmp_value,Slist[i].cmp_value);
     sort(vd.begin(), vd.end());
     vd.erase(unique(vd.begin(), vd.end()),vd.end());
-    
-    for(; it!= WithIndexList.end(); it++)
+    vector<int>::iterator mIter;
+    for(i = 1; i < Slist.size(); i++)
     {
-        index_name = Find_index_name(table_name,it->attr_name);
-        vb = Find_indices(index_name, it->operation, it->cmp_value);
-        va = vb;
-        
+        vector<int> vb = Select(Slist[i].attr_name,Slist[i].cmp_value,Slist[i].cmp_value);
+        vector<int> va = vd;
         //vd = va jiao vb, va = vd
         sort(va.begin(), va.end());
         sort(vb.begin(), vb.end());
@@ -373,31 +427,15 @@ void API_Delete(string table_name,string WClasue)//undo
         sort(vd.begin(),vd.end());
         vd.erase(unique(vd.begin(),vd.end()),vd.end());
     }
-    
     if(vd.empty())
     {
         cout<<"Empty Set"<<endl;
         return;
     }
     
-    for(int i = 0; i <32; i++)
-        delete_num = 0;
-    DeleteTuple(vd, tb, Dlist);
-    cout<<"Query OK, "<<delete_num<<" rows affected"<<endl;
-    if(delete_num == 0)
-    {
-        cout<<"Empty Set"<<endl;
-        return;
-    }
-    for(int i = 0; i< tb.attr_num; i++)
-    {
-        string index_name = Find_index_name(table_name, tb.attrs[i].attr_name);
-        if(index_name == "")
-            continue;
-        vector<string> vs = split(delete_values[i],"\t");
-        for(int j = 0; j <vs.size(); j++)
-            DeleteIndex(index_name, vs[j]);
-    }
+    for(int i = 0; i < vd.size(); i++)
+        RCM.Delete(tb.table_name, vd[i]);
+    cout<<"Query OK, "<<i<<" rows affected"<<endl;
 }
 
 vector<string> split(string str, string pattern)
