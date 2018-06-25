@@ -23,7 +23,7 @@ class CatalogManager{
     bool IndexInit(std::string name);
     void DropTable(Table table);
 
-    int IndexOffset(std::string tableName, std::string attrName);
+    int IndexOffset(std::string tableName, std::string indexName);
     Index ReadIndex(std::string tableName, std::string attrName, int indexOffset);
     void CreateIndex(Index index);
     void DropIndex(std::string tableName, int indexOffset);
@@ -141,15 +141,15 @@ Table CatalogManager::ReadTable(std::string name)
   return table;
 }
 
-int CatalogManager::IndexOffset(std::string tableName, std::string attrName)
+int CatalogManager::IndexOffset(std::string tableName, std::string indexName)
 {
   std::string fileName=GetFileName(tableName);
   int blockNum=bf.FindBlock(fileName,1);
   char* data=bf.ReadBlockData(blockNum);
   for(short i=0;i<*(short*)(data+IndexNumPos);i++)
   {
-    std::string str(data+IndexAttPos+WordMaxLength*2*i+WordMaxLength);
-    if(str==attrName)
+    std::string str(data+IndexAttPos+WordMaxLength*2*i);
+    if(str==indexName)
     {
       return i;
     }
