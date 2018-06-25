@@ -2,6 +2,7 @@
 
 using namespace std;
 
+extern RecordManager RCM;
 extern CatalogManager CTM;
 extern IndexManager IDM;
 //when create table 
@@ -59,38 +60,17 @@ void API_Create_Index(Index& index)
 {
     int x = CTM.IndexOffset(index.table_name, index.index_name);
     CTM.CreateIndex(index);
-    if(x!= -1)
+    if(x == -1)
     {
         int i;
         //select firstly
-        vector<int> offsetlist;
-        ConditionList list;
-        
         //select* from table_name
-        //SelectTuple(offsetlist, Read_Table_Info(index.table_name), list);
-        /*
-        //get table information
-        Table tb = Read(index.table_name);
         
-        //get attrid
-        int ID = tb.searchAttrId(index.attr_name);
-        
-        vector<Value_offset> values;
-        extern vector<string> select_values;
-        extern vector<int> select_offsets;
-        
-        for(i = 0; i < select_values.size(); i++)
-        {
-            Value_offset temp;
-            temp.s = split(select_values[i],"\t", ID);
-            temp.off = select_offsets[i];
-            values.push_back(temp);
-        }*/
         Table tb = CTM.ReadTable(index.table_name);
         for(i = 0 ; i < tb.attr_num; i++)
             if(tb.attrs[i].attr_name == index.attr_name)
                 break;
-//        CreateIndex(values, index.index_name, tb.attrs[ID].attr_type - INT);
+//      CreateIndex(values, index.index_name, tb.attrs[ID].attr_type - INT);
         IDM.CreateIndexHead(index, tb.attrs[i].attr_type);
         cout<<"QUERY OK, 0 rows affected"<<endl;
     }
@@ -229,52 +209,42 @@ void API_Insert(string table_name, string Values) //error
     else record.null.push_back(true);
     for(i = 0; i < tb.attr_num; i++)
     {
-        string index_name;
         //check all attr
         if(tb.attrs[i].attr_key_type == PRIMARY)
         {
             //get index_name
-            index_name = Find_index_name(tb.table_name, tb.attrs[i].attr_name);
+            int offset = CTM.IndexOffset(tb.table_name, tb.attrs[i].attr_name);
+            Index idx = CTM.ReadIndex(tb.table_name, tb.attrs[i].attr_name, offset);
             //search if same name
-            vector<int> v0 = Find_indices(index_name, "=", tb.attr_values[i]);
+            vector<int> v0 = Select(idx.index_name,"==",record.atts[i]);
+           // vector<int> v0 = Find_indices(index_name, "=", tb.attr_values[i]);
             if(!v0.empty())//if cover
             {
-                cout<<"ERROR: Duplicate entry "<< tb.attr_values[i]<< " for key 'Primary'"<<endl;
+                cout<<"ERROR: Duplicate entry  for key 'Primary'"<<endl;
                 return;
             }
         
         }
         else if(tb.attrs[i].attr_key_type == UNIQUE)
         {
-            index_name = Find_index_name(tb.table_name,tb.attrs[i].attr_name);
-            if(index_name != "")
+            int offset = CTM.IndexOffset(tb.table_name, tb.attrs[i].attr_name);
+            if(offset != -1)
             {
-                //check same name,similar to up
-                vector<int> v1 = Find_indices(index_name, "=", tb.attr_values[i]);
-                if(!v1.empty())
+                Index idx = CTM.ReadIndex(tb.table_name, tb.attrs[i].attr_name, offset);
+                
+                vector<int> v0 = Select(idx.index_name,"==",record.atts[i]);
+                // vector<int> v0 = Find_indices(index_name, "=", tb.attr_values[i]);
+                if(!v0.empty())//if cover
                 {
-                    cout<<"ERROR: Duplicate entry "<< tb.attr_values[i]<< " for key 'unique'"<<endl;
+                    cout<<"ERROR: Duplicate entry  for key 'unique'"<<endl;
                     return;
                 }
-                tb.attrs[i].attr_key_type = OTHER;
             }
         }
     }
     //insert successfully
-    int offset = Insert(tb.table_name,tb.attrs, tb.attr_values);
-    if(offset != -1)
-    {
-        //put index into B+tree
-        for(i = 0; i < tb.attr_num; i++)
-        {
-            string index_name = Find_index_name(tb.table_name,tb.attrs[i].attr_name);
-            if(index_name != "")
-                InsertIndex(index_name, tb.attr_values[i], offset);
-        }
+    RCM.Insert(tb, record);
         cout<<"Query OK, 1 row affected\n"<<endl;
-    }
-    else
-        cout<<"error: Duplicate unique attribute exists"<<endl;
 }
 
 
@@ -289,51 +259,19 @@ void API_Select(string table_name, vector<string> & attr, string WClause)
     }
     Table tb = CTM.ReadTable(table_name);
     Record record;
-    int i,j;
+    int i = 0,count;
     int pos1 = 0,pos2;
     int end = 0;
+    ConditionList Slist;
     
-    
-    
-    
-    vector<int> va,vb,vd;
-    vector<int>::iterator mIter;
-    string index_name;
-    
-    //if no index
-    if(WithIndexList.empty())
-    {
-        select_values.clear();
-        select_num = 0;
-        SelectTuple(vd, tb, Slist);
-        /*********/
-        if(select_num == 0)
-        {
-            cout<<"Empty Set"<<endl;
-            return;
-        }
-        else
-        {
-            API_DrawResult(tb);
-            cout<<select_num<<" rows in set"<<endl;
-        }
-        return;
-    }
-    
-    it = WithIndexList.begin();
-    index_name = Find_index_name(table_name, it->attr_name);
-    vd = Find_indices(index_name, it->operation, it->cmp_value);
-    
-    //sort
+    vector<int> vd = Select(Slist[i].attr_name,Slist[i].cmp_value,Slist[i].cmp_value);
     sort(vd.begin(), vd.end());
     vd.erase(unique(vd.begin(), vd.end()),vd.end());
-    
-    for(++it; it!= WithIndexList.end(); it++)
+    vector<int>::iterator mIter;
+    for(i = 1; i < Slist.size(); i++)
     {
-        index_name = Find_index_name(table_name,it->attr_name);
-        vb = Find_indices(index_name, it->operation, it->cmp_value);
-        va = vd;
-        
+        vector<int> vb = Select(Slist[i].attr_name,Slist[i].cmp_value,Slist[i].cmp_value);
+        vector<int> va = vd;
         //vd = va jiao vb, va = vd
         sort(va.begin(), va.end());
         sort(vb.begin(), vb.end());
@@ -344,27 +282,14 @@ void API_Select(string table_name, vector<string> & attr, string WClause)
         sort(vd.begin(),vd.end());
         vd.erase(unique(vd.begin(),vd.end()),vd.end());
     }
-    
     if(vd.empty())
     {
         cout<<"Empty Set"<<endl;
         return;
     }
-    
-    select_values.clear();
-    select_num = 0;
-    SelectTuple(vd, tb, Slist);
-    
-    if(select_num == 0)
-    {
-        cout<<"Empty Set"<<endl;
-        return;
-    }
-    else
-    {
-        API_DrawResult(tb);
-        cout<<select_num<<" rows in set"<<endl;
-    }
+    count = vd.size();
+    API_DrawResult();
+    cout<<count<<" rows in set"<<endl;
     
 }
 
