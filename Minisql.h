@@ -3,6 +3,9 @@
 #include <vector>
 #include <list>
 
+#define PRIMARY 0
+#define UNIQUE  1
+#define OTHER   2
 //Attribute's len has some problem
 using namespace std;
 class Attribute
@@ -15,7 +18,7 @@ public:
 //	int attr_len;	   //CHAR:0. not char:1
     int attr_id;        //atribute's no.
 public:
-    Attribute(string a, int b,int c, int d, int e){attr_name = a;attr_type = b;attr_key_type = c; attr_len = d;attr_id = e;};
+    Attribute(string a, int b,int c, int d){attr_name = a;attr_type = b;attr_key_type = c;attr_id = d;};
 	~Attribute();	
 };
 
@@ -63,10 +66,13 @@ public:
 	~Index();
 };
 
-struct Tuple: public Table
-{
-    string attr_values[32];    
-};
+
+class Record{
+  public:
+	vector<string> atts;
+	vector<bool> null;
+};  
+
 
 int Table::getPrimaryKeyId()
 {
@@ -93,10 +99,14 @@ int Table::length()
 	int s = 0;
 	for(int i = 0; i < attr_num; i++)
 	{
-		s += attrs[i].attr_len;
+		s += attrs[i].attr_type;
 	}
 	return s;
 }
+
+static char bitMap[4]={
+	0x8, 0x4, 0x2, 0x1
+};
 
 
 
