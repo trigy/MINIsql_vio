@@ -6,10 +6,10 @@ extern BufferManager bf;
 #define AttNumPos     0
 #define PrimaryNumPos 2
 #define UniquePos     4
-#define TableAttPos        8
+#define TableAttPos   12
 
 #define IndexNumPos   0
-#define IndexAttPos        2
+#define IndexAttPos   2
 
 #define WordMaxLength 20
 
