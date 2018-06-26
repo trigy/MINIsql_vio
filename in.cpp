@@ -75,19 +75,52 @@ int ReadPosInt(std::string a, int length)
     return result;
 }
 
+int ReadOperation(std::string op)
+{
+    if(op=="=")
+    {
+        return EQU;
+    }
+    else if(op=="<>")
+    {
+        return NEQ;
+    }
+    else if(op==">=")
+    {
+        return LGE;
+    }
+    else if(op=="<=")
+    {
+        return SME;
+    }
+    else if(op==">")
+    {
+        return LRG;
+    }
+    else if(op=="<")
+    {
+        return SML;
+    }
+    else 
+    {
+        return -1;
+    }
+}
+
 int main()
 {
     // RecordManager RCM;
     // CatalogManager CTM;
     // IndexManager IDM;
     // string a=getInput();
-    string a="create table student{id int};";
+    string a="create table student{id int, name char(8)};";
     // string a="2155  4244 53333";
     vector<string> term=GetTerm(a);
     for(int i=0;i<term.size();i++)
     {
         cout<<"["<<term[i]<<"]";
     }
+    cout<<endl;
     bool errorFlag=false;
     if(term[0]=="create")
     {
@@ -100,13 +133,13 @@ int main()
             {
                 int i=4;
                 bool primaryFlag=false;
-                while(term[i]=="}")
+                while(term[i]!="}")
                 {
                     for (int j = 0; j < table.attrs.size(); j++)
                     {
                         if (table.attrs[j].attr_name == term[i])
                         {
-                            cerr<<"two attributes have the same name"<<endl;
+                            cerr<<"ERROR: two attributes have the same name"<<endl;
                             errorFlag=true;
                             break;
                         }
@@ -119,7 +152,7 @@ int main()
                     {
                         if(primaryFlag)
                         {
-                            cerr<<"more than one primary key"<<endl;
+                            cerr<<"ERROR: more than one primary key"<<endl;
                             errorFlag = true;
                             break;
                         }
@@ -133,7 +166,7 @@ int main()
                         }
                         if(!primaryFlag)
                         {
-                            cerr<<"can't find the referenced attribute"<<endl;
+                            cerr<<"ERROR: can't find the referenced attribute"<<endl;
                             errorFlag = true;
                             break;
                         }
@@ -143,26 +176,26 @@ int main()
                         if(term[i+1]=="int")
                         {
                             attr.attr_type=INT;
-                            i++;
+                            i+=2;
                         }
                         else if(term[i+1]=="float")
                         {
                             attr.attr_type=FLOAT;
-                            i++;
+                            i+=2;
                         }
                         else if(term[i+1]=="char"&&term[i+2]=="("&&term[i+4]==")")
                         {                      
                             attr.attr_type=ReadPosInt(term[i+3],term[i+3].size());
                             if(attr.attr_type<0) 
                             {
-                                cerr<<"SE"<<endl; //不是数字
+                                cerr << "ERROR: stynax error near " << term[i+3] << endl; //不是数字
                                 break;
                             }
-                            i+=4;
+                            i+=5;
                         }
                         else 
                         {
-                            cerr << "SE" << endl; //错误的类型
+                            cerr << "ERROR: stynax error near " << term[i+1] << endl; //错误的类型
                             break;
                         }
                         if(term[i+1]=="unique")
@@ -181,21 +214,26 @@ int main()
                     }
                     else 
                     {
-                        cerr << "SE" << endl; //最后一行的多余逗号
+                        cerr << "ERROR: stynax error near " << term[i-1] << endl; //最后一行的多余逗号
                         errorFlag = true;
                         break;
                     }
                 }
-
+                if (i > term.size())
+                {
+                    cerr << "ERROR: stynax error near " << term[term.size() - 2] << endl;
+                    return -1;
+                }
             }
             else 
             {
-                cerr<<"stynax error"<<endl; //反正就是没到定义的时候
+                cerr<<"ERROR: stynax error near "<<term[2]<<endl; //反正就是没到定义的时候
                 errorFlag = true;
             }
             if(!errorFlag)
             {
-                API_CreateTable(table);
+                // API_CreateTable(table);
+                cout<<"create table"<<endl;
             }
         }
         else if(term[1]=="index")
@@ -203,40 +241,219 @@ int main()
             if(term[3]=="on"&&term[5]=="("&&term[7]==")"&&term[8]==";")
             {
                 Index index(term[2],term[4],term[6]);
-                API_CreateIndex(index);
+                // API_CreateIndex(index);
             }
             else 
             {
-                cerr<<"stynax error"<<endl;
+                cerr << "ERROR: stynax error near " << term[1] << endl;
             }
         }
     }
     else if(term[0]=="select")
     {
-
+        vector<string> selectAttr;
+        bool selectAll=false;
+        int i = 2;
+        if(term[1]=="*")
+        {
+            selectAll=true;
+        }
+        else 
+        {
+            selectAttr.push_back(term[1]);
+            while (term[i] != "from")
+            {
+                if (term[i] == ",")
+                {
+                    selectAttr.push_back(term[i + 1]);
+                    i += 2;
+                }
+            }
+        }   
+        if(CTM.TableExist(term[i]))
+        {
+            Table table=CTM.ReadTable(term[i]);
+            if(term[i+1]==";")
+            {
+                API_SelectAll(table,selectAttr);
+            }
+            else if(term[i+1]=="where")
+            {
+                ConditionList cl;
+                i+=2;
+                Condition fcon;
+                fcon.attr_name=term[i];
+                fcon.operation=ReadOperation(term[i+1]);
+                fcon.cmp_value=term[i+2];
+                if(fcon.operation<0)
+                {
+                    cerr << "ERROR: stynax error near " << term[i+1] << endl;
+                    return -1;
+                }
+                cl.push_back(fcon);
+                i+=3;
+                while(term[i]!=";")
+                {
+                    if(term[i]=="and")
+                    {
+                        i++;
+                        Condition con;
+                        con.attr_name = term[i];
+                        con.operation = ReadOperation(term[i + 1]);
+                        con.cmp_value = term[i + 2];
+                        if (con.operation < 0)
+                        {
+                            cerr << "ERROR: stynax error near " << term[i + 1] << endl;
+                            return -1;
+                        }
+                        cl.push_back(con);
+                        i += 3;
+                    }
+                    else 
+                    {
+                        cerr << "ERROR: stynax error near " << term[i] << endl;
+                        return -1;
+                    }
+                }
+                API_SelectCon(table,selectAttr,cl);
+            }
+        }
+        else 
+        {
+            cerr<<"ERROR: table does not exist"<<endl;
+        }
     }
-    else if(term[0]=="delete")
+    else if(term[0]=="delete" && term[1]=="from")
     {
-
+        int i=2;
+        if (CTM.TableExist(term[i]))
+        {
+            Table table = CTM.ReadTable(term[i]);
+            if (term[i + 1] == ";")
+            {
+                API_DeleteAll(table);
+            }
+            else if (term[i + 1] == "where")
+            {
+                ConditionList cl;
+                i += 2;
+                Condition fcon;
+                fcon.attr_name = term[i];
+                fcon.operation = ReadOperation(term[i + 1]);
+                fcon.cmp_value = term[i + 2];
+                if (fcon.operation < 0)
+                {
+                    cerr << "ERROR: stynax error near " << term[i + 1] << endl;
+                    return 0;
+                }
+                cl.push_back(fcon);
+                i += 3;
+                while (term[i] != ";")
+                {
+                    if (term[i] == "and")
+                    {
+                        i++;
+                        Condition con;
+                        con.attr_name = term[i];
+                        con.operation = ReadOperation(term[i + 1]);
+                        con.cmp_value = term[i + 2];
+                        if (con.operation < 0)
+                        {
+                            cerr << "ERROR: stynax error near " << term[i + 1] << endl;
+                            return -1;
+                        }
+                        cl.push_back(con);
+                        i += 3;
+                    }
+                    else
+                    {
+                        cerr << "ERROR: stynax error near " << term[i] << endl;
+                        return -1;
+                    }
+                }
+                API_DeleteCon(table, cl);
+            }
+        }
+        else
+        {
+            cerr << "ERROR: table does not exist" << endl;
+        }
     }
-    else if(term[0]=="insert")
+    else if(term[0]=="insert" && term[1]=="into")
     {
-
+        Table table=CTM.ReadTable(term[2]);
+        if(term[3]=="values" && term[4]=="(")
+        {
+            int i=5;
+            Record record;
+            record.atts.push_back(term[i]);
+            if(term[i]=="NULL")
+                record.null.push_back(true);
+            else 
+                record.null.push_back(false);
+            i++;
+            while(term[i]!=")")
+            {
+                if(term[i]==",")
+                {
+                    i++;
+                    record.atts.push_back(term[i]);
+                    if (term[i] == "NULL")
+                        record.null.push_back(true);
+                    else
+                        record.null.push_back(false);
+                    i++;
+                }
+                else 
+                {
+                    cerr << "ERROR: stynax error near " << term[i] << endl;
+                }
+                if(i>term.size())
+                {
+                    cerr << "ERROR: stynax error near " << term[term.size()-2] << endl;
+                    return -1;
+                }
+            }
+            if(term[i+1]==";")
+            {
+                API_Insert(table,record);
+            }
+            else 
+            {
+                cerr << "ERROR: stynax error near " << term[i+1] << endl;
+                return -1;
+            }
+        }
     }
     else if(term[0]=="drop")
     {
-
+        if(term[1]=="table" && term[3]==";")
+        {
+            API_DropTable(term[2]);
+        }
+        else if(term[1]=="index" && term[3]=="on" && term[5]==";") //drop index xxx on xxx;
+        {
+            API_DropIndex(term[2],term[4]);
+        }
     }
     else if(term[0]=="execfile")
     {
-
+        
     }
     else if(term[0]=="quit")
     {
         if(term[1]==";")
         {
-            bf.WriteBackAllDirtyBlock();
+            // bf.WriteBackAllDirtyBlock();
+        } 
+        else 
+        {
+            cerr<< "ERROR: stynax error near " << term[0] <<endl;
         }
+    } 
+    else 
+    {
+       cerr<< "ERROR: stynax error near " << term[0] <<endl;
     }
-    bf.WriteBackAllDirtyBlock();
+    // bf.WriteBackAllDirtyBlock();
 }

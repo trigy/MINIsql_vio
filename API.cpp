@@ -84,6 +84,13 @@ void API_DropIndex(Index index)
         cout << "ERROR: Index " << index.index_name << " doesn't exist" << endl;
 }
 
+void API_Insert(Table &table ,Record& record)
+{
+    
+}
+
+
+
 //tb
 //insert
 void API_Insert(string table_name, string Values) //error

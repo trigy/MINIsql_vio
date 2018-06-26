@@ -11,6 +11,13 @@
 #define PRIMARY 0
 #define UNIQUE  1
 #define OTHER   2
+
+#define EQU 0
+#define NEQ 1
+#define LGE 2
+#define SME 3
+#define LRG 4
+#define SML 5 
 //Attribute's len has some problem
 using namespace std;
 class Attribute
@@ -85,14 +92,15 @@ class Condition
 {
 public:
 	string attr_name; //attr's name of the contion
-	string operation; //can read "<>","=",">=""<="">""<"
+	int operation; //can read 0: "=", 1: "<>", 2: ">=", 3: "<=",4 :">", 5: "<"
 	string cmp_value; //compared object
-	Condition(string a, string b, string c)
-	{
-		attr_name = a;
-		operation = b;
-		cmp_value = c;
-	}
+	Condition(){}
+	// Condition(string a, string b, string c)
+	// {
+	// 	attr_name = a;
+	// 	operation = b;
+	// 	cmp_value = c;
+	// }
 };
 typedef vector<Condition> ConditionList;
 class Index     //explain the search information

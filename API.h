@@ -22,14 +22,25 @@ void API_DropTable(string table_name);
 
 void API_CreateIndex(Index& index);
 
-void API_DropIndex(Index index);
+// void API_DropIndex(Index index);
+void API_DropIndex(string table_name, string index_name);
 
-void API_Insert(string table_name, string Values); //error
+// void API_Insert(string table_name, string Values); //error
+
+void API_Insert(Table& table, Record& record);
 
 //inside function when operate on the log 
-void API_Select(string table_name, vector<string> & attr, string WClause);
+// void API_Select(string table_name, vector<string> & attr, string WClause);
 
-void API_Delete(string table_name,string WClasue);
+void API_SelectAll(Table& table, vector<string>& selectAttr);
+
+void API_SelectCon(Table& table, vector<string>& selectAttr, ConditionList& cl);
+
+// void API_Delete(string table_name,string WClasue);
+
+void API_DeleteAll(Table &table);
+
+void API_DeleteCon(Table &table, ConditionList &cl);
 
 string split(string str,string pattern,int id);
 
