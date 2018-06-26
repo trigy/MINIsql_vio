@@ -5,8 +5,9 @@
 //  Created by zhe on 2018/6/21.
 //  Copyright © 2018年 zhezhezhe. All rights reserved.
 //
-
-#include "Interpreter.hpp"
+#ifndef __INT_H_
+#define __INT_H_
+#include "Interpreter.h"
 #include "API.h"
 #include <cstdio>
 #include <cstdlib>
@@ -284,7 +285,8 @@ int drop_clause(string &SQLSentence, int &SQLCurrentPointer, int &end, condition
         SQLCondition.setTableName(CurWord);
         SQLCurrentPointer = ++end;
     }
-    return DROP;
+    // return DROP;
+    return 0;
 }
 
 /////////////////////////////////////////////////
@@ -725,9 +727,12 @@ int delect_clauese(string &SQLSentence, int &SQLCurrentPointer, int &end, condit
     SQLCurrentPointer = end;
     return DELETE;
 }
+int min(int a, int b)
+{
+    return a<b?a:b;
+}
 
-
-extern block blocks[BLOCKNUMBER];
+// extern block blocks[BLOCKNUMBER];
 //处理每一行的attribute
 int attrDef(Attribute Att ,string attDef)//处理表的属性定义
 {
@@ -827,14 +832,14 @@ void API(condition &SQLCondition)
         }
         case DELETE:
         {
-            API_Delete(SQLCondition.tableName, SQLCondition.whereClause)
+            API_Delete(SQLCondition.tableName, SQLCondition.whereClause);
             break;
         }
         case CREATE_TABLE:
         {
-            Table tb = new Table;
+            Table tb;
             tb.table_name = SQLCondition.tableName;
-            Attribute Attr = new Attribute;
+            Attribute Attr; 
             string att = SQLCondition.attribute;
             int pos1 = 0, pos2;
             int i = 0,flag = 0;
@@ -850,13 +855,13 @@ void API(condition &SQLCondition)
                     Attr.attr_name = "";
                     Attr.attr_type = -1;
                     int res = attrDef(Attr,att.substr(pos1,pos2-pos1));
-                    if(res != 1) return res;
+                    if(res != 1) return; //res;
                     tb.attrs.push_back(Attr);
                     if(Attr.attr_key_type == PRIMARY)
                         if(flag)
                         {
                             cerr<<"ERROR:"<<"more than one Primary key"<<endl;
-                            return DEFINATION_ERROR;
+                            // return DEFINATION_ERROR;
                         }
                         else
                             flag = 1;
@@ -870,12 +875,12 @@ void API(condition &SQLCondition)
                     if(flag)
                     {
                         cerr<<"ERROR:"<<"more than one Primary key"<<endl;
-                        return DEFINATION_ERROR;
+                        // return DEFINATION_ERROR;
                     }
                     else
                         flag = 1;
-                    pos1 = Attributes.find('(',pos1);
-                    pos2 = Attributes.find(')',pos1+1);
+                    pos1 = att.find('(',pos1);
+                    pos2 = att.find(')',pos1+1);
                     PKey = att.substr(pos1+1,pos2-pos1-1);
                     pos1 = att.find(',',pos2)+1;
                     
@@ -894,7 +899,7 @@ void API(condition &SQLCondition)
                 if(flag == 0)
                 {
                     cerr<<"ERROR:"<<"No such Attribute!"<<endl;
-                    return DEFINATION_ERROR;
+                    // return DEFINATION_ERROR;
                 }
             }
             API_CreateTable(tb);
@@ -912,9 +917,9 @@ void API(condition &SQLCondition)
         }
         case DROP_INDEX:
         {
-            Index Dindex(SQLCondition.indexName, SQLCondition.tableName."");
+            Index Dindex(SQLCondition.indexName, SQLCondition.tableName, SQLCondition.attribute);
             API_DropIndex(Dindex);
-            free(Dindex);
+            // free(Dindex);
             break;
         }
         default:
@@ -963,7 +968,7 @@ int interpreter(string &SQLSentence, condition &SQLCondition)
         nextWord = SQLSentence.substr(SQLCurrentPointer, end - SQLCurrentPointer);//check whether the quit instruction
         //has other words. example:"quit select;"
         if (nextWord == ";")//we can only find ';'
-            return QUIT_NUMBER;
+            return QUIT_NUMBER; 
         else
             cerr << "ERROR:" << "Quit instruction should has only one key word \"quit\"\n";
     }
@@ -1020,3 +1025,4 @@ int interpreter(string &SQLSentence, condition &SQLCondition)
     API(SQLCondition);
     return code;
 }
+#endif

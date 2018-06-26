@@ -1,9 +1,18 @@
-#pragma once
+// #pragma once
+#ifndef __API_H_
+#define __API_H_
+
 #include <ctime>
+#include <algorithm>
 #include "Minisql.h"
 #include "IndexManager.h"
 #include "CatalogManager.h"
 #include "RecordManager.h"
+
+extern RecordManager RCM;
+extern CatalogManager CTM;
+extern IndexManager IDM;
+extern BufferManager bf;
 
 using namespace std;
 
@@ -30,3 +39,5 @@ void API_DrawResult(Table& tb,Record res);
 
 //merry the time
 double Cal_time(long start, long end);
+
+#endif

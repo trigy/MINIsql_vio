@@ -1,7 +1,12 @@
+#ifndef __CLASS_
+#define __CLASS_
+
 #include <iostream>
 #include <string>
 #include <vector>
-#include <list>
+
+#define INT 0
+#define FLOAT -1
 
 #define PRIMARY 0
 #define UNIQUE  1
@@ -18,8 +23,15 @@ public:
 //	int attr_len;	   //CHAR:0. not char:1
     int attr_id;        //atribute's no.
 public:
-    Attribute(string a, int b,int c, int d){attr_name = a;attr_type = b;attr_key_type = c;attr_id = d;};
-	~Attribute();	
+  Attribute(){}
+  Attribute(string a, int b, int c, int d)
+  {
+	  attr_name = a;
+	  attr_type = b;
+	  attr_key_type = c;
+	  attr_id = d;
+	  }
+	~Attribute(){}	
 };
 
 class Table
@@ -29,11 +41,44 @@ public:
 	int attr_num;         //number of the attribute
 	vector<Attribute> attrs;
 public:
-	Table();
-	~Table();
-	int getPrimaryKeyId(); //if no primary key return -1;
-	int searchAttrId(string AttrName);//if no primary key return -1
-	int length();
+	Table(const Table& t)
+	{
+		table_name=t.table_name;
+		attr_num=t.attr_num;
+		for(int i=0;i<t.attrs.size();i++)
+		{
+			attrs.push_back(t.attrs[i]);
+		}
+	}
+	Table(){}
+	~Table(){}
+	int getPrimaryKeyId() //if no primary key return -1;
+	{
+		for (int i = 0; i < attr_num; i++)
+		{
+			if (attrs[i].attr_key_type == PRIMARY)
+				return i;
+		}
+		return -1;
+	}
+	int searchAttrId(string AttrName)//if no primary key return -1
+	{
+		for (int i = 0; i < attr_num; i++)
+		{
+			if (attrs[i].attr_name == AttrName)
+				return i;
+		}
+		return -1;
+	}
+	int length()
+	{
+		int s = 0;
+		for (int i = 0; i < attr_num; i++)
+		{
+			s += attrs[i].attr_type;
+		}
+		return s;
+	}
 };
 
 class Condition
@@ -49,7 +94,7 @@ public:
 		cmp_value = c;
 	}
 };
-typedef list<Condition> ConditionList;
+typedef vector<Condition> ConditionList;
 class Index     //explain the search information
 {
 public:
@@ -57,13 +102,14 @@ public:
 	string table_name;
 	string attr_name;
 public:
+	Index(){}
 	Index(string a, string b, string c)
 	{
 		index_name = a;
 		table_name = b;
 		attr_name = c;
 	}
-	~Index();
+	~Index(){}
 };
 
 
@@ -73,41 +119,11 @@ class Record{
 	vector<bool> null;
 };  
 
-
-int Table::getPrimaryKeyId()
-{
-	for(int i = 0; i < attr_num; i++)
-	{
-		if(attrs[i].attr_key_type == PRIMARY)
-			return i;
-	}
-	return -1;
-}
-
-int Table::searchAttrId(string AttrName)
-{
-	for(int i = 0; i < attr_num; i++)
-	{
-		if(attrs[i].attr_name == AttrName)
-			return i;
-	}
-	return -1;
-}
-
-int Table::length()
-{
-	int s = 0;
-	for(int i = 0; i < attr_num; i++)
-	{
-		s += attrs[i].attr_type;
-	}
-	return s;
-}
-
 static char bitMap[4]={
 	0x8, 0x4, 0x2, 0x1
 };
 
+#endif
 
 
 

@@ -61,6 +61,7 @@ enum Tokenop
 #define CREATE_INDEX 262
 #define DROP_TABLE 263
 #define DROP_INDEX 264
+#define QUIT_NUMBER -1
 
 using namespace std;
 class condition
@@ -75,11 +76,11 @@ public:
     string attribute;
 public:
     void setInstruction(int Ins);
-    void setColName(string ColName)
-    {
-        if(ColName == "*");
+    // void setColName(string ColName)
+    // {
+    //     if(ColName == "*");
         
-    }
+    // }
     void setInstruction(int type) { instructionType = type; }//set the instruction type
 	void setColName(const string &col) { colName.push_back(col); }
 	void setTableName(const string &table) { tableName = table; }
@@ -90,14 +91,14 @@ public:
 };
 
 string getInput();
-int attrDef(Attribute Att ,string attDef)
+int attrDef(Attribute Att ,string attDef);
 int select_clause(string &SQLSentence, int &SQLCurrentPointer, int &end, condition &SQLCondition);
 int drop_clause(string &SQLSentence, int &SQLCurrentPointer, int &end, condition &SQLCondition);
 int insert_clause(string &SQLSentence, int &SQLCurrentPointer, int &end, condition &SQLCondition);
 int create_clause(string &SQLSentence, int &SQLCurrentPointer, int &end, condition &SQLCondition);
 int delect_clauese(string &SQLSentence, int &SQLCurrentPointer, int &end, condition &SQLCondition);
-int interpreter(string &SQLSentence, condition &SQLCondition, BPLUSTREE &BTree, buffermanager &bufManager);
-void API(condition &SQLCondition, BPLUSTREE &BTree, buffermanager &bufManager);
+int interpreter(string &SQLSentence, condition &SQLCondition);
+void API(condition &SQLCondition);
 class Interpreter {
 public:
     Interpreter()
@@ -114,7 +115,7 @@ public:
     
     void exec()
     {
-        Analysis();
+        // Analysis();
     }
     
 };
