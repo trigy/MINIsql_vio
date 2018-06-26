@@ -14,12 +14,8 @@ void API_CreateTable(Table &table)
         //create index automatically
         if (id != -1)
         {
-            string index_name = table.table_name + "_" + table.attrs[id].attr_name;
+            string index_name = table.attrs[id].attr_name;
             Index idx(table.table_name, table.attrs[id].attr_name, index_name);
-            /*while(idx.index_name == Find_index_name(table.table_name,table.attrs[id].attr_name))
-            {
-                idx.index_name = "_" + idx.index_name;
-            }*/
 
             //catalog create index
             CTM.CreateIndex(idx);
@@ -86,7 +82,18 @@ void API_DropIndex(Index index)
 
 void API_Insert(Table &table ,Record& record)
 {
-    
+    if(table.attrs.size()!=record.atts.size())
+    {
+        cerr<< "ERROR: Insert values is miss matched with Table"<<table.table_name<<endl;
+    }
+    else
+    {
+        for(int i=0;i<table.attrs.size();i++)
+        {
+            short type=table.attrs[i].attr_key_type;
+            
+        }
+    }
 }
 
 

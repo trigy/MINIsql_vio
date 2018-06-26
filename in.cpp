@@ -381,6 +381,11 @@ int main()
     }
     else if(term[0]=="insert" && term[1]=="into")
     {
+        if(CTM.TableExist(term[2]))
+        {
+            cerr << "ERROR: table does not exist" << endl;
+            return -1;
+        }
         Table table=CTM.ReadTable(term[2]);
         if(term[3]=="values" && term[4]=="(")
         {
@@ -438,7 +443,7 @@ int main()
     }
     else if(term[0]=="execfile")
     {
-        
+
     }
     else if(term[0]=="quit")
     {
