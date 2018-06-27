@@ -65,12 +65,39 @@ void BlockNode::WriteData(int start, char *newData, int length)
 
 void BlockNode::WriteBack()
 {
-    std::ofstream file(fileName);
+    // std::fstream ifile(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    // int index;
+    // char newData[BlockMaxSize];
+    // ifile.seekg(0);
+    // ifile.read(newData, BlockMaxSize);
+    // std::cout<<"firstblock: "<<*(short*)newData<<std::endl;
+    // ifile.close();
+
+    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    std::cout<<"state: "<<file.good()<<std::endl;
+    if(!file.good())
+    {
+        file.close();
+        file.open(fileName, std::ios::in | std::ios::out | std::ios::binary | std::ios::app);
+        file.clear();
+    }
     file.seekp(offset * BlockMaxSize);
+    std::cout << "offset: " << (offset * BlockMaxSize) << std::endl;
     file.write(data, BlockMaxSize);
+    file.flush();
+    std::cout << "first: " << *(short *)data << std::endl;
     dirty = false;
     file.close();
     std::cout<<"writeback"<<std::endl;
+
+    std::fstream ifile2(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    int index2;
+    char newData2[BlockMaxSize];
+    ifile2.seekg(0);
+    ifile2.read(newData2, BlockMaxSize);
+    std::cout << "firstblock: " << *(short *)newData2 << std::endl;
+    ifile2.close();
+    std::cout<<std::endl;
 }
 
 BufferManager::BufferManager()
@@ -89,13 +116,15 @@ bool BufferManager::IsFull()
 
 bool BufferManager::FileExist(std::string name)
 {
-    std::ifstream file(name);
-    if (file)
+    std::fstream file(name);
+    if (file.good())
     {
+        file.close();
         return true;
     }
     else
     {
+        file.close();
         return false;
     }
 }
@@ -121,7 +150,7 @@ void BufferManager::DropBlockLRU()
 
 int BufferManager::ReadBlockFromFile(std::string fileName, int offset)
 {
-    std::ifstream file(fileName.data());
+    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
     int index;
     char newData[BlockMaxSize];
     file.seekg(offset * BlockMaxSize);
@@ -158,10 +187,10 @@ int BufferManager::FindBlock(std::string fileName, int offset)
 
 int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
 {
-    std::ifstream file(fileName.data());
+    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
     bool valid;
     int maxOffset;
-    file.seekg(6);
+    file.seekg(0);
     file.read((char *)&maxOffset, 4);
     for (int i = 1; i <= maxOffset; i++)
     {

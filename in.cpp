@@ -62,7 +62,7 @@ int ReadPosInt(std::string a, int length)
     int result=0;
     for(int i=0;i<length;i++)
     {
-        if(a[i]>'0'&&a[i]<'9')
+        if(a[i]>='0'&&a[i]<='9')
         {
             result*=10;
             result+=a[i]-'0';
@@ -73,6 +73,34 @@ int ReadPosInt(std::string a, int length)
         }       
     }
     return result;
+}
+
+bool CheckFloat(std::string a)
+{
+    bool point=false;
+    for(int i=0;i<a.size();i++)
+    {
+        if(a[i]=='.')
+        {
+            if(point)
+            {
+                return false;
+            }
+            else 
+            {
+                point=true;
+            }
+        }
+        else if(a[i]>='0'&&a[i]<='9')
+        {
+            continue;
+        }
+        else 
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 int ReadOperation(std::string op)
@@ -107,13 +135,79 @@ int ReadOperation(std::string op)
     }
 }
 
+string GetAttrValue(string term, short type, bool& error)
+{
+    error=false;
+    cout<<"type: "<<type<<endl;
+    if(type==INT)
+    {
+        if(term[0]=='-')
+        {
+            int re=ReadPosInt(term.substr(1),term.size()-1);
+            if(re<0)
+            {
+                error=true;
+                return term;
+            }
+            else 
+            {
+                error=false;
+                re=-re;
+                return string((char*)&re);
+            }
+        }
+        else 
+        {
+            int re = ReadPosInt(term, term.size());
+            if (re < 0)
+            {
+                error = true;
+                return term;
+            }
+            else
+            {
+                error = false;
+                return string((char *)&re);
+            }
+        }
+    }
+    else if(type==FLOAT)
+    {
+        if(CheckFloat(term))
+        {
+            float f;
+            sscanf(term.data(),"%f",&f);
+            error=false;
+            return string((char*)&f);
+        }
+        else 
+        {
+            error=true;
+            return term;
+        }
+    }
+    else
+    {
+        if(term[0]=='\''&&term[type+1]=='\'')
+        {
+            error=false;
+            return term.substr(1,type);
+        }
+        else 
+        {
+            error=true;
+            return term;
+        }
+    }
+}
+
 int main()
 {
     // RecordManager RCM;
     // CatalogManager CTM;
     // IndexManager IDM;
-    // string a=getInput();
-    string a="create table student{id int, name char(8)};";
+    string a=getInput();
+    // string a="create table student{id int, name char(8)};";
     // string a="2155  4244 53333";
     vector<string> term=GetTerm(a);
     for(int i=0;i<term.size();i++)
@@ -141,7 +235,7 @@ int main()
                         {
                             cerr<<"ERROR: two attributes have the same name"<<endl;
                             errorFlag=true;
-                            break;
+                            return -1;
                         }
                     }
                     Attribute attr;
@@ -232,8 +326,8 @@ int main()
             }
             if(!errorFlag)
             {
-                // API_CreateTable(table);
-                cout<<"create table"<<endl;
+                API_CreateTable(table);
+                // cout<<"create table"<<endl;
             }
         }
         else if(term[1]=="index")
@@ -252,11 +346,11 @@ int main()
     else if(term[0]=="select")
     {
         vector<string> selectAttr;
-        bool selectAll=false;
+        bool selectAttrAll=false;
         int i = 2;
         if(term[1]=="*")
         {
-            selectAll=true;
+            selectAttrAll=true;
         }
         else 
         {
@@ -268,11 +362,24 @@ int main()
                     selectAttr.push_back(term[i + 1]);
                     i += 2;
                 }
+                else 
+                {
+                    cerr<<"ERROR: syntax error near "<<term[i]<<endl;
+                    return -1;
+                }
             }
         }   
+        i++;
         if(CTM.TableExist(term[i]))
         {
             Table table=CTM.ReadTable(term[i]);
+            if (selectAttrAll)
+            {
+                for (int i = 0; i < table.attrs.size(); i++)
+                {
+                    selectAttr.push_back(table.attrs[i].attr_name);
+                }
+            }
             if(term[i+1]==";")
             {
                 API_SelectAll(table,selectAttr);
@@ -320,7 +427,7 @@ int main()
         }
         else 
         {
-            cerr<<"ERROR: table does not exist"<<endl;
+            cerr<<"ERROR: table "<<term[i]<<"does not exist"<<endl;
         }
     }
     else if(term[0]=="delete" && term[1]=="from")
@@ -381,32 +488,70 @@ int main()
     }
     else if(term[0]=="insert" && term[1]=="into")
     {
-        if(CTM.TableExist(term[2]))
+        if(!CTM.TableExist(term[2]))
         {
-            cerr << "ERROR: table does not exist" << endl;
+            cerr << "ERROR: table "<<term[2]<<" does not exist" << endl;
             return -1;
         }
         Table table=CTM.ReadTable(term[2]);
+        // cout<<"table attr no: "<<table.attrs.size()<<endl;
+        int valueCount=0;
         if(term[3]=="values" && term[4]=="(")
         {
-            int i=5;
             Record record;
-            record.atts.push_back(term[i]);
+            int i=5;
+            if(valueCount==table.attrs.size())
+            {
+                cerr << "ERROR: Insert values is miss matched with Table "<<table.table_name<<endl;
+                return -1;
+            }
             if(term[i]=="NULL")
+            {
                 record.null.push_back(true);
+                record.atts.push_back(term[i]);
+            }
             else 
+            {
                 record.null.push_back(false);
+                bool error;
+                std::string attValue = GetAttrValue(term[i], table.attrs[valueCount].attr_type, error);
+                if (error)
+                {
+                    cerr << "ERROR: Insert values type error near " << term[i] << endl;
+                    return -1;
+                }
+                record.atts.push_back(attValue);
+            }
+            valueCount++;
             i++;
             while(term[i]!=")")
             {
                 if(term[i]==",")
                 {
                     i++;
-                    record.atts.push_back(term[i]);
+                    if (valueCount == table.attrs.size())
+                    {
+                        cerr << "ERROR: Insert values is miss matched with Table " << table.table_name << endl;
+                        return -1;
+                    }
                     if (term[i] == "NULL")
+                    {
                         record.null.push_back(true);
+                        record.atts.push_back(term[i]);
+                    }
                     else
+                    {
                         record.null.push_back(false);
+                        bool error;
+                        std::string attValue = GetAttrValue(term[i], table.attrs[valueCount].attr_key_type, error);
+                        if (error)
+                        {
+                            cerr << "ERROR: Insert values type error near " << term[i] << endl;
+                            return -1;
+                        }
+                        record.atts.push_back(attValue);
+                    }
+                    valueCount++;
                     i++;
                 }
                 else 
@@ -429,6 +574,10 @@ int main()
                 return -1;
             }
         }
+        else 
+        {
+            cerr<<"ERROR: stynax error near "<<term[i]<<endl;
+        }
     }
     else if(term[0]=="drop")
     {
@@ -449,7 +598,7 @@ int main()
     {
         if(term[1]==";")
         {
-            // bf.WriteBackAllDirtyBlock();
+            bf.WriteBackAllDirtyBlock();
         } 
         else 
         {
@@ -460,5 +609,5 @@ int main()
     {
        cerr<< "ERROR: stynax error near " << term[0] <<endl;
     }
-    // bf.WriteBackAllDirtyBlock();
+    bf.WriteBackAllDirtyBlock();
 }

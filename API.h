@@ -42,13 +42,13 @@ void API_DeleteAll(Table &table);
 
 void API_DeleteCon(Table &table, ConditionList &cl);
 
-string split(string str,string pattern,int id);
+// string split(string str,string pattern,int id);
 
-vector<string> split(string str, string pattern);
+// vector<string> split(string str, string pattern);
 
-void API_DrawResult(Table& tb,Record res);
+// void API_DrawResult(Table& tb,Record res);
 
-//merry the time
+// merry the time
 double Cal_time(long start, long end);
 
 #endif

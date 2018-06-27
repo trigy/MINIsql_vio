@@ -40,16 +40,16 @@ int CatalogManager::CreateTable(Table table)
         short length = table.attrs[i].attr_name.size();
         short type = table.attrs[i].attr_type;
         const char *attName = table.attrs[i].attr_name.data();
-        memcpy(newData + i * 6, (char *)&dataPos, 2);
-        memcpy(newData + i * 6 + 2, (char *)&length, 2);
-        memcpy(newData + i * 6 + 4, (char *)&type, 2);
+        memcpy(newData + TableAttPos + i * 6, (char *)&dataPos, 2);
+        memcpy(newData + TableAttPos + i * 6 + 2, (char *)&length, 2);
+        memcpy(newData + TableAttPos + i * 6 + 4, (char *)&type, 2);
         memcpy(newData + dataPos, attName, length);
         dataPos += length;
-        return 0;
     }
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
     IndexInit(name);
     bf.Unlock(blockNum);
+    return 0;
 }
 
 bool CatalogManager::IndexInit(std::string name)

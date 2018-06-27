@@ -12,8 +12,8 @@ void IndexManager::CreateIndexHead(Index index, short type)
     std::string name = GetFileName(index);
     int blockNum = bf.AddNewBlockToFile(name, 0);
     char newData[BlockMaxSize];
-    *(bool *)(newData) = true;
-    *(int *)(newData + TypePos_IM) = type;
+    *(int *)(newData) = -1;
+    *(short *)(newData + TypePos_IM) = type;
     *(int *)(newData + RootPos_IM) = 0;
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
 }

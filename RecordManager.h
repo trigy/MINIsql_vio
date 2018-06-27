@@ -16,7 +16,7 @@ class RecordManager{
   public:
     int MaxOffset(Table table);
     int RecordLength(Table table);
-    // bool IsValid(Table table, int recordOffset);
+    bool IsValid(Table table, int recordOffset);
     std::string GetFileName(Table table);
     void Create(Table table);
     void Insert(Table table, Record record);

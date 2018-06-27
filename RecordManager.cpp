@@ -27,23 +27,30 @@ int RecordManager::RecordLength(Table table)
     return lengthPerRecord;
 }
 
-// bool RecordManager::IsValid(Table table, int recordOffset)
-// {
-//   int length=RecordLength(table);
-//   std::string name = GetFileName(table);
-//   int recordNum = bf.FindBlock(name, 1);
-//   char* data=bf.ReadBlockData(recordNum);
-//   bool valid=*(bool*)(data+recordOffset*length+ValidPos);
-//   bf.Unlock(recordNum);
-//   return valid;
-// }
+bool RecordManager::IsValid(Table table, int recordOffset)
+{
+    std::string name = GetFileName(table);
+    int blockNum = bf.FindBlock(name, 0);
+    char *data = bf.ReadBlockData(blockNum);
+    int lengthPerRecord = *(int *)(data + LengthPos);
+    int recordPerBlock = BlockMaxSize / lengthPerRecord;
+    int blockIndex = (recordOffset) / recordPerBlock + 1;
+    int recordOffsetInBlock = (recordOffset) % recordPerBlock;
+    bf.Unlock(blockNum);
+
+    int recordNum = bf.FindBlock(name, blockIndex);
+    char *recordData = bf.ReadBlockData(recordNum);
+    bool valid = *(bool *)(recordData + recordOffset * lengthPerRecord + ValidPos);
+    bf.Unlock(recordNum);
+    return valid;
+}
 
 void RecordManager::Create(Table table)
 {
     std::string name = GetFileName(table);
     int blockNum = bf.AddNewBlockToFile(name, 0);
-    int maxOffset = 0;
-    int lengthPerRecord = 5 + 4 * table.attr_num;
+    int maxOffset = -1;
+    int lengthPerRecord = AttPos + 4 * table.attrs.size();
     for (int i = 0; i < table.attr_num; i++)
     {
         lengthPerRecord += (table.attrs[i].attr_type > 0 ? table.attrs[i].attr_type : 4);
@@ -69,9 +76,9 @@ void RecordManager::Insert(Table table, Record record)
     int recordNum = bf.FindBlock(name, blockIndex);
     char newData[BlockMaxSize];
     bool valid = true;
-    char nullMap[4] = {0};
+    char nullMap[8] = {0,0};
     memcpy(newData + ValidPos, (char *)&valid, 1);
-    memcpy(newData + NullPos, nullMap, 4);
+    memcpy(newData + NullPos, nullMap, 8);
     short recordPos = AttPos + 4 * table.attr_num;
     for (int i = 0; i < table.attr_num; i++)
     {
@@ -103,7 +110,7 @@ void RecordManager::Delete(Table table, int recordOffset)
     int recordPerBlock = BlockMaxSize / lengthPerRecord;
     int blockIndex = (recordOffset) / recordPerBlock + 1;
     int recordOffsetInBlock = (recordOffset) % recordPerBlock;
-
+    bf.Unlock(blockNum);
     int recordNum = bf.FindBlock(name, blockIndex);
     bool valid = false;
     bf.WriteData(recordNum, (char *)&valid, lengthPerRecord * recordOffsetInBlock + ValidPos, 1);
@@ -119,14 +126,17 @@ Record RecordManager::ReadRecord(Table table, int recordOffset)
     int recordPerBlock = BlockMaxSize / lengthPerRecord;
     int blockIndex = (recordOffset) / recordPerBlock + 1;
     int recordOffsetInBlock = (recordOffset) % recordPerBlock;
-
+    bf.Unlock(blockNum);
     int recordNum = bf.FindBlock(name, blockIndex);
     char *recordData = bf.ReadBlockData(recordNum);
     Record record;
     for (int i = 0; i < table.attr_num; i++)
     {
         int pos = *(short *)(recordData + recordOffsetInBlock * lengthPerRecord + AttPos + 4 * i);
-        std::string att((recordData + recordOffsetInBlock * lengthPerRecord + pos));
+        int length = *(short *)(recordData + recordOffsetInBlock * lengthPerRecord + AttPos + 4 * i + 2);
+        char attc[255];
+        memcpy(attc, recordData + recordOffsetInBlock * lengthPerRecord + pos,length);
+        std::string att(attc);
         char *nullMap = recordData + recordOffsetInBlock * lengthPerRecord + NullPos;
         bool isNull = *(nullMap + i / 4) & bitMap[i % 4];
         record.null.push_back(isNull);
