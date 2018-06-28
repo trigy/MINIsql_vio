@@ -19,7 +19,7 @@ class RecordManager{
     bool IsValid(Table table, int recordOffset);
     std::string GetFileName(Table table);
     void Create(Table table);
-    void Insert(Table table, Record record);
+    int Insert(Table table, Record record);
     void Delete(Table table, int recordOffset);
     void ReadRecord(Table table, int recordOffset, Record& record);
     void DropRecordFile(Table table);

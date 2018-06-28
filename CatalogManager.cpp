@@ -136,6 +136,22 @@ int CatalogManager::IndexOffset(std::string tableName, std::string indexName)
     return -1;
 }
 
+int CatalogManager::IndexOffset2(std::string tableName, std::string attrName)
+{
+    std::string fileName = GetFileName(tableName);
+    int blockNum = bf.FindBlock(fileName, 1);
+    char *data = bf.ReadBlockData(blockNum);
+    for (short i = 0; i < *(short *)(data + IndexNumPos); i++)
+    {
+        std::string str(data + IndexAttPos + WordMaxLength * 2 * i + WordMaxLength);
+        if (str == attrName)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 Index CatalogManager::ReadIndex(std::string tableName, std::string attrName, int indexOffset)
 {
     std::string fileName = GetFileName(tableName);
@@ -162,4 +178,28 @@ void CatalogManager::DropIndex(std::string tableName, int indexOffset)
     (*(short *)(newData + IndexNumPos))--;
     memcpy(newData + IndexAttPos + indexOffset * 2 * WordMaxLength, data + IndexAttPos + (indexOffset + 1) * 2 * WordMaxLength, BlockMaxSize - (IndexAttPos + indexOffset * 2 * WordMaxLength));
     bf.WriteData(blockNum, newData, 0, MaxBlockNum);
+}
+
+int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
+{
+    std::string name = GetFileName(table.table_name);
+    int blockNum = bf.FindBlock(name, 1);
+    char *data = bf.ReadBlockData(blockNum);
+    short indexNum=*(short*)(data+IndexNumPos);
+    cout<<indexNum<<endl;
+    if(indexNum==0)
+    {
+        return 0;
+    }
+    for(int i=0;i<indexNum;i++)
+    {
+        Index index;
+        index.table_name=table.table_name;
+        index.attr_name=string(data+IndexAttPos+WordMaxLength*i*2+WordMaxLength);
+        // cout<<index.attr_name<<endl;
+        index.index_name=string(data+IndexAttPos+WordMaxLength*i*2);
+        // cout << index.attr_name << endl;
+        indexList.push_back(index);
+    }
+    return 1;
 }

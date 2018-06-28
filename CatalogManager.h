@@ -28,7 +28,9 @@ class CatalogManager{
     void DropTable(Table table);
 
     int IndexOffset(std::string tableName, std::string indexName);
+    int IndexOffset2(std::string tableName, std::string attrName);
     Index ReadIndex(std::string tableName, std::string attrName, int indexOffset);
+    int GetIndexList(Table table, vector<Index> &indexList);
     void CreateIndex(Index index);
     void DropIndex(std::string tableName, int indexOffset);
 };

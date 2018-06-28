@@ -16,9 +16,9 @@ class IndexManager{
   public:
     std::string GetFileName(Index index);
     void CreateIndexHead(Index index, short type);
-    void Insert(Index index, std::string key, int val);
-    int Search(Index index, std::string key);
-    void Delete(Index index, std::string key);
+    void Insert(Index index, char *key, int val);
+    int Search(Index index, char *key, bool &exist);
+    void Delete(Index index, char *key);
 };
 
 #endif

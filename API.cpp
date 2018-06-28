@@ -98,8 +98,23 @@ void API_DropIndex(string table_name, string index_name)
 
 void API_Insert(Table &table ,Record& record)
 {
-    RCM.Insert(table,record);
+    int rf=RCM.Insert(table,record);
+    vector<Index> indexList;
+    if(CTM.GetIndexList(table,indexList))
+    {
+        for(int i=0;i<indexList.size();i++)
+        {
+            for(int j=0;j<table.attrs.size();j++)
+            {
+                if(table.attrs[j].attr_name==indexList[i].attr_name)
+                {
+                    IDM.Insert(indexList[i],record.atts[j],rf);
+                }
+            }
+        }
+    }
     //插入index
+    cout << "QUERY OK, 1 rows affected" << endl;
 }
 
 
@@ -281,17 +296,20 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
             return;
         }
     }
-
+    cout<<"#\t";
     for(int i=0;i<selectAttr.size();i++)
     {
         cout<<selectAttr[i]<<"\t";
     }
     cout<<endl;
     int maxRecord=RCM.MaxOffset(table);
-    for(int i=0;i<=maxRecord;i++)
+    int num=0;
+    for(int i=0;i<maxRecord;i++)
     {
         if(RCM.IsValid(table,i))
         {
+            cout<<num<<"\t";
+            num++;
             Record record;
             RCM.ReadRecord(table,i,record);
             for(int j=0;j<attrNo.size();j++)
@@ -305,18 +323,18 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
                 {
                     if (table.attrs[index].attr_type == INT)
                     {
-                        cout<<*(int *)(record.atts[index].data())<<"\t";
+                        cout<<*(int *)(record.atts[index])<<"\t";
                     }
                     else if (table.attrs[index].attr_type == FLOAT)
                     {
-                        cout << *(float *)(record.atts[index].data()) << "\t";
+                        cout << *(float *)(record.atts[index]) << "\t";
                     }
                     else 
                     {
-                        char term[256];
-                        memcpy(term, record.atts[index].data(), table.attrs[index].attr_type);
-                        term[table.attrs[index].attr_type]='\0';
-                        cout<< string(term)<<"\t";
+                        // char term[256];
+                        // memcpy(term, record.atts[index], table.attrs[index].attr_type);
+                        // term[table.attrs[index].attr_type]='\0';
+                        cout << string(record.atts[index]) << "\t";
                     }
                 }
             }
@@ -326,14 +344,174 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
     cout << "QUERY OK, 0 rows affected" << endl;
 }
 
+int cmp(char *da, char* db, short type)
+{
+    if (type == 0) //int
+    {
+        int a = *(int *)da;
+        int b = *(int *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else if (type == -1) //float
+    {
+        float a = *(float *)da;
+        float b = *(float *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else
+    {
+        for (short i = 0; i < type; i++)
+        {
+            if (*(da + i) > *(db + i))
+                return 1;
+            else if (*(da + i) < *(db + i))
+                return -1;
+            else
+                return 0;
+        }
+    }
+}
+
 void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
 {
 
+    vector<int> attrNo;
+    for (int i = 0; i < selectAttr.size(); i++)
+    {
+        bool find = false;
+        for (int j = 0; j < table.attrs.size(); j++)
+        {
+            if (table.attrs[j].attr_name == selectAttr[i])
+            {
+                attrNo.push_back(j);
+                //不考虑重复的属性
+                find = true;
+            }
+        }
+        if (!find)
+        {
+            cerr << "ERROR: can not find Attritube " << selectAttr[i] << endl;
+            return;
+        }
+    }
+    vector<int> selectOffset;
+    int maxRecord = RCM.MaxOffset(table);
+    for(int i=0;i<cl.size();i++)
+    {
+        bool find = false;
+        for (int j = 0; j < table.attrs.size(); j++)
+        {
+            if (table.attrs[j].attr_name == cl[i].attr_name)
+            {
+                int id=CTM.IndexOffset2(table.table_name,table.attrs[j].attr_name);
+                // cout<<id<<endl;
+                if(id>=0) //如果在这个属性上建立了索引
+                {
+                    Index index = CTM.ReadIndex(table.table_name, table.attrs[j].attr_name,id);
+                    bool exist;
+                    int rf=IDM.Search(index,cl[i].cmp_value,exist);
+                    switch(cl[i].operation)
+                    {
+                        case EQU:   if(exist)
+                                        selectOffset.push_back(rf);
+                                    break;
+                        case NEQ:   if(!exist)
+                                        selectOffset.push_back(rf);
+                                    break;
+                        case LGE:   if(exist)
+                                    {
+                                        
+                                    }
+                    }
+                }
+                else //如果没有建立索引
+                {
+                    for(int k=0;k<=maxRecord;k++)
+                    {
+                        if(RCM.IsValid(table,k))
+                        {
+                            Record record;
+                            RCM.ReadRecord(table,k,record);
+                            switch(cl[i].operation)
+                            {
+                                case EQU:   if(!cmp(record.atts[j],cl[i].cmp_value,table.attrs[j].attr_type))
+                                                selectOffset.push_back(k);
+                            }
+                        }
+                    }
+                }
+                find = true;
+            }
+        }
+        if (!find)
+        {
+            cerr << "ERROR: can not find Attritube " << selectAttr[i] << endl;
+            return;
+        }
+    }
+
+    cout << "#\t";
+    for (int i = 0; i < selectAttr.size(); i++)
+    {
+        cout << selectAttr[i] << "\t";
+    }
+    cout << endl;
+    int num = 0;
+    for (int i = 0; i < selectOffset.size(); i++)
+    {
+        cout << num << "\t";
+        num++;
+        Record record;
+        RCM.ReadRecord(table, selectOffset[i], record);
+        for (int j = 0; j < attrNo.size(); j++)
+        {
+            int index = attrNo[j];
+            if (record.null[index] == true)
+            {
+                cout << "\t";
+            }
+            else
+            {
+                if (table.attrs[index].attr_type == INT)
+                {
+                    cout << *(int *)(record.atts[index]) << "\t";
+                }
+                else if (table.attrs[index].attr_type == FLOAT)
+                {
+                    cout << *(float *)(record.atts[index]) << "\t";
+                }
+                else
+                {
+                    // char term[256];
+                    // memcpy(term, record.atts[index], table.attrs[index].attr_type);
+                    // term[table.attrs[index].attr_type]='\0';
+                    cout << string(record.atts[index]) << "\t";
+                }
+            }
+        }
+        cout << endl;
+    }
+    cout << "QUERY OK, 0 rows affected" << endl;
 }
 
 void API_DeleteAll(Table &table)
 {
-
+    int maxRecord = RCM.MaxOffset(table);
+    for (int i = 0; i <= maxRecord; i++)
+    {
+        RCM.Delete(table,i);
+    }
+    cout << "QUERY OK, 0 rows affected" << endl;
 }
 
 void API_DeleteCon(Table &table, ConditionList &cl)

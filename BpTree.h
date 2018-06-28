@@ -34,7 +34,7 @@ class BpTree{
     int InsertInThisNode(KEY key, int val);
     int Split(int index);
     bool Search(KEY key,int &index);
-    int SearchKey(KEY key);
+    int SearchKey(KEY key, bool &exist);
     int DeleteKey(KEY key);
     int Reform();
 };

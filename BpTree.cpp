@@ -30,11 +30,11 @@ int cmp(char *data, KEY key, short type, int i)
     {
         KEY a = (data + i * (KeyLength + 4));
         KEY b = key;
-        for (short i = 0; i < type; i++)
+        for (short j = 0; j < type; j++)
         {
-            if (*(a + i) > *(b + i))
+            if (*(a + j) > *(b + j))
                 return 1;
-            else if (*(a + i) < *(b + i))
+            else if (*(a + j) < *(b + j))
                 return -1;
             else
                 return 0;
@@ -61,6 +61,7 @@ int BpTree::InsertToLeaf(KEY key, int val)
 {
     if (*(bool *)(data + TypePos) == true)
     {
+        // std::cout<<"insert in this node"<<std::endl;
         return InsertInThisNode(key, val);
     }
     else
@@ -152,15 +153,16 @@ int BpTree::InsertInThisNode(KEY key, int val)
         //error
     }
     index++;
-
+    // std::cout<<"index: "<<index<<std::endl;
     char newData[BlockMaxSize];
 
     memcpy(newData, data, BlockAttSpace + index * (KeyLength + 4));
     memcpy(newData + BlockAttSpace + (index + 1) * (KeyLength + 4), data + BlockAttSpace + index * (KeyLength + 4), ((*(int *)(data + 2)) - index) * (KeyLength + 4));
     (*(int *)(newData + StorePos))++;
-    memcpy(newData + BlockAttSpace + index * (KeyLength + 4), key, 1);
+    memcpy(newData + BlockAttSpace + index * (KeyLength + 4), key, KeyLength);
+    // std::cout << "offset: " << BlockAttSpace + index * (KeyLength + 4)<<std::endl;
     // (char *)(newData + BlockAttSpace + index * (KeyLength + 4)) = key;
-    *(int *)(newData + BlockAttSpace + index * (KeyLength + 4) + KeyLength) = val;
+    * (int *)(newData + BlockAttSpace + index * (KeyLength + 4) + KeyLength) = val;
 
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
 
@@ -174,7 +176,7 @@ int BpTree::InsertInThisNode(KEY key, int val)
 
 bool BpTree::Search(KEY key, int &index)
 {
-    int store = *(int *)(data + 2);
+    int store = *(int *)(data + StorePos);
     if (store < tipNum) //when the num of key is lower than setting number, we search one by one
     {
         for (int i = 0; i < store; i++)
@@ -221,23 +223,15 @@ bool BpTree::Search(KEY key, int &index)
     }
 }
 
-int BpTree::SearchKey(KEY key)
+int BpTree::SearchKey(KEY key, bool &exist)
 {
     int index;
-    bool exist = Search(key, index);
+    exist = Search(key, index);
     if (*(bool *)(data + TypePos) == true)
     {
-        if (exist)
-        {
-            int val = *(int *)(data + BlockAttSpace + index * (KeyLength + 4) + KeyLength);
-            bf.Unlock(blockNum);
-            return val;
-        }
-        else
-        {
-            bf.Unlock(blockNum);
-            return -1;
-        }
+        int val = *(int *)(data + BlockAttSpace + index * (KeyLength + 4) + KeyLength);
+        bf.Unlock(blockNum);
+        return val;
     }
     else
     {
@@ -245,7 +239,7 @@ int BpTree::SearchKey(KEY key)
         int childNum = bf.FindBlock(name, childOffset);
         BpTree child(name, childOffset, childNum, type);
         bf.Unlock(blockNum);
-        return child.SearchKey(key);
+        return child.SearchKey(key,exist);
     }
 }
 

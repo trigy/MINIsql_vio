@@ -93,7 +93,7 @@ class Condition
 public:
 	string attr_name; //attr's name of the contion
 	int operation; //can read 0: "=", 1: "<>", 2: ">=", 3: "<=",4 :">", 5: "<"
-	string cmp_value; //compared object
+	char cmp_value[256] ; //compared object
 	Condition(){}
 	// Condition(string a, string b, string c)
 	// {
@@ -123,7 +123,7 @@ public:
 
 class Record{
   public:
-	vector<string> atts;
+	char atts[32][256];
 	vector<bool> null;
 };  
 

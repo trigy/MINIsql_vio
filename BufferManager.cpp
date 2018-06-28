@@ -125,6 +125,13 @@ bool BufferManager::FileExist(std::string name)
     else
     {
         file.close();
+        for(int i=0;i<store;i++)
+        {
+            if (block[i].Match(name)&&block[i].IsValid())
+            {
+                return true;
+            }
+        }
         return false;
     }
 }
@@ -192,7 +199,7 @@ int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
     int maxOffset;
     file.seekg(0);
     file.read((char *)&maxOffset, 4);
-    for (int i = 1; i <= maxOffset; i++)
+    for (int i = 1; i < maxOffset; i++)
     {
         file.seekg(i * BlockMaxSize);
         file.read((char *)&valid, 1);
@@ -221,19 +228,19 @@ int BufferManager::AddNewBlockToFile(std::string fileName, int offset)
     {
         index = store++;
     }
-    bool exist = FileExist(fileName);
-    if (!(exist & offset))
-    {
-        block[index].Init(offset, newData, fileName);
-        block[index].SetDirty(1);
-        lruIndex.push_front(index);
-        Lock(index);
-        return index;
-    }
-    else
-    {
-        return -1;
-    }
+    // bool exist = FileExist(fileName);
+    // if (!(exist & offset))
+    // {
+    block[index].Init(offset, newData, fileName);
+    block[index].SetDirty(1);
+    lruIndex.push_front(index);
+    Lock(index);
+    return index;
+    // }
+    // else
+    // {
+    //     return -1;
+    // }
 }
 
 char *BufferManager::ReadBlockData(int index)

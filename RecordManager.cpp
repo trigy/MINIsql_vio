@@ -49,7 +49,7 @@ void RecordManager::Create(Table table)
 {
     std::string name = GetFileName(table);
     int blockNum = bf.AddNewBlockToFile(name, 0);
-    int maxOffset = -1;
+    int maxOffset = 0;
     int lengthPerRecord = AttPos + 4 * table.attrs.size();
     for (int i = 0; i < table.attr_num; i++)
     {
@@ -62,7 +62,7 @@ void RecordManager::Create(Table table)
     bf.Unlock(recordNum);
 }
 
-void RecordManager::Insert(Table table, Record record)
+int RecordManager::Insert(Table table, Record record)
 {
     std::string name = GetFileName(table);
     int blockNum = bf.FindBlock(name, 0);
@@ -70,8 +70,8 @@ void RecordManager::Insert(Table table, Record record)
     int maxOffset = *(int *)(data + MaxOffsetPos);
     int lengthPerRecord = *(int *)(data + LengthPos);
     int recordPerBlock = BlockMaxSize / lengthPerRecord;
-    int blockIndex = (maxOffset + 1) / recordPerBlock + 1;
-    int recordOffset = (maxOffset + 1) % recordPerBlock;
+    int blockIndex = (maxOffset) / recordPerBlock + 1;
+    int recordOffset = (maxOffset) % recordPerBlock;
 
     int recordNum = bf.FindBlock(name, blockIndex);
     char newData[BlockMaxSize];
@@ -80,13 +80,13 @@ void RecordManager::Insert(Table table, Record record)
     memcpy(newData + ValidPos, (char *)&valid, 1);
     memcpy(newData + NullPos, nullMap, 8);
     short recordPos = AttPos + 4 * table.attr_num;
-    for (int i = 0; i < table.attr_num; i++)
+    for (int i = 0; i < table.attrs.size(); i++)
     {
         short type = table.attrs[i].attr_type;
         short length = type > 0 ? type : 4;
         memcpy(newData + AttPos + i * 4, (char *)&recordPos, 2);
         memcpy(newData + AttPos + i * 4 + 2, (char *)&length, 2);
-        const char *key = record.atts[i].data();
+        const char *key = record.atts[i];
         memcpy(newData + recordPos, key, length);
         if (record.null[i])
         {
@@ -99,6 +99,7 @@ void RecordManager::Insert(Table table, Record record)
     maxOffset++;
     bf.WriteData(blockNum, (char *)&maxOffset, MaxOffsetPos, 4);
     bf.Unlock(blockNum);
+    return maxOffset;
 }
 
 void RecordManager::Delete(Table table, int recordOffset)
@@ -134,17 +135,12 @@ void RecordManager::ReadRecord(Table table, int recordOffset, Record& record)
     {
         short pos = *(short *)(recordData + recordOffsetInBlock * lengthPerRecord + AttPos + 4 * i);
         short length = *(short *)(recordData + recordOffsetInBlock * lengthPerRecord + AttPos + 4 * i + 2);
-        std::cout<<pos<<length<<std::endl;
-        char attc[255];
-        memcpy(attc, recordData + recordOffsetInBlock * lengthPerRecord + pos,length);
+        // std::cout<<pos<<length<<std::endl;
+        memcpy(record.atts[i], recordData + recordOffsetInBlock * lengthPerRecord + pos,length);
         // std::cout<<*(int*)attc<<std::endl;
-        attc[length] = '\0';
-        std::string att(attc);
-        std::cout << *(int *)att.data() << std::endl;
         char *nullMap = recordData + recordOffsetInBlock * lengthPerRecord + NullPos;
         bool isNull = *(nullMap + i / 8) & bitMap[i % 8];
         record.null.push_back(isNull);
-        record.atts.push_back(att);
     }
     bf.Unlock(recordNum);
     // return record;
