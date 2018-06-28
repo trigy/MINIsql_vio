@@ -6,6 +6,7 @@
 #include<list>
 #define BlockMaxSize 4096
 #define MaxBlockNum 1024
+#define FILEDIR "dbfile\\"
 // #define MaxLength 20
 class BlockNode {
   private:

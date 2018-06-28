@@ -9,7 +9,7 @@
 
 #define ValidPos 0
 #define NullPos 1
-#define AttPos 9
+#define AttPos 5
 
 extern BufferManager bf;
 class RecordManager{
@@ -21,7 +21,8 @@ class RecordManager{
     void Create(Table table);
     void Insert(Table table, Record record);
     void Delete(Table table, int recordOffset);
-    Record ReadRecord(Table table, int recordOffset);
+    void ReadRecord(Table table, int recordOffset, Record& record);
+    void DropRecordFile(Table table);
 };
 
 

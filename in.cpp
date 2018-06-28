@@ -215,7 +215,6 @@ int main()
         cout<<"["<<term[i]<<"]";
     }
     cout<<endl;
-    bool errorFlag=false;
     if(term[0]=="create")
     {
         if(term[1]=="table")
@@ -234,25 +233,19 @@ int main()
                         if (table.attrs[j].attr_name == term[i])
                         {
                             cerr<<"ERROR: two attributes have the same name"<<endl;
-                            errorFlag=true;
                             return -1;
                         }
                     }
-                    Attribute attr;
-                    attr.attr_name=term[i];
-                    attr.attr_key_type=OTHER;
-                    attr.attr_id=table.attrs.size();
-                    if(term[i+1]=="primary"&&term[i+2]=="key"&&term[i+3]=="("&&term[i+5]==")")
+                    if(term[i]=="primary"&&term[i+1]=="key"&&term[i+2]=="("&&term[i+4]==")")
                     {
                         if(primaryFlag)
                         {
                             cerr<<"ERROR: more than one primary key"<<endl;
-                            errorFlag = true;
-                            break;
+                            return -1;
                         }
                         for(int j=0;j<table.attrs.size();j++)
                         {
-                            if(table.attrs[j].attr_name==term[i+4])
+                            if(table.attrs[j].attr_name==term[i+3])
                             {
                                 table.attrs[j].attr_key_type=PRIMARY;
                                 primaryFlag=true;
@@ -261,12 +254,16 @@ int main()
                         if(!primaryFlag)
                         {
                             cerr<<"ERROR: can't find the referenced attribute"<<endl;
-                            errorFlag = true;
-                            break;
+                            return -1;
                         }
+                        i+=5;
                     }
                     else 
                     {
+                        Attribute attr;
+                        attr.attr_name=term[i];
+                        attr.attr_key_type=OTHER;
+                        attr.attr_id=table.attrs.size();
                         if(term[i+1]=="int")
                         {
                             attr.attr_type=INT;
@@ -283,14 +280,14 @@ int main()
                             if(attr.attr_type<0) 
                             {
                                 cerr << "ERROR: stynax error near " << term[i+3] << endl; //不是数字
-                                break;
+                                return -1;
                             }
                             i+=5;
                         }
                         else 
                         {
-                            cerr << "ERROR: stynax error near " << term[i+1] << endl; //错误的类型
-                            break;
+                            cerr << "ERROR: stynax error near " << term[i+1] <<": invalid type"<< endl; //错误的类型
+                            return -1;
                         }
                         if(term[i+1]=="unique")
                         {
@@ -309,8 +306,7 @@ int main()
                     else 
                     {
                         cerr << "ERROR: stynax error near " << term[i-1] << endl; //最后一行的多余逗号
-                        errorFlag = true;
-                        break;
+                        return -1;
                     }
                 }
                 if (i > term.size())
@@ -322,13 +318,10 @@ int main()
             else 
             {
                 cerr<<"ERROR: stynax error near "<<term[2]<<endl; //反正就是没到定义的时候
-                errorFlag = true;
+                return -1;
             }
-            if(!errorFlag)
-            {
-                API_CreateTable(table);
+            API_CreateTable(table);
                 // cout<<"create table"<<endl;
-            }
         }
         else if(term[1]=="index")
         {
@@ -340,6 +333,7 @@ int main()
             else 
             {
                 cerr << "ERROR: stynax error near " << term[1] << endl;
+                return -1;
             }
         }
     }
@@ -428,6 +422,7 @@ int main()
         else 
         {
             cerr<<"ERROR: table "<<term[i]<<"does not exist"<<endl;
+            return -1;
         }
     }
     else if(term[0]=="delete" && term[1]=="from")
@@ -451,7 +446,7 @@ int main()
                 if (fcon.operation < 0)
                 {
                     cerr << "ERROR: stynax error near " << term[i + 1] << endl;
-                    return 0;
+                    return -1;
                 }
                 cl.push_back(fcon);
                 i += 3;
@@ -484,6 +479,7 @@ int main()
         else
         {
             cerr << "ERROR: table does not exist" << endl;
+            return -1;
         }
     }
     else if(term[0]=="insert" && term[1]=="into")
@@ -543,7 +539,7 @@ int main()
                     {
                         record.null.push_back(false);
                         bool error;
-                        std::string attValue = GetAttrValue(term[i], table.attrs[valueCount].attr_key_type, error);
+                        std::string attValue = GetAttrValue(term[i], table.attrs[valueCount].attr_type, error);
                         if (error)
                         {
                             cerr << "ERROR: Insert values type error near " << term[i] << endl;
@@ -576,7 +572,7 @@ int main()
         }
         else 
         {
-            cerr<<"ERROR: stynax error near "<<term[i]<<endl;
+            cerr<<"ERROR: stynax error near "<<term[2]<<endl;
         }
     }
     else if(term[0]=="drop")

@@ -12,11 +12,12 @@ void API_CreateTable(Table &table)
         CTM.CreateTable(table);
         RCM.Create(table);
         int id = table.getPrimaryKeyId();
+        cout<<"primary key: "<<id<<endl;
         //create index automatically
         if (id != -1)
         {
             string index_name = table.attrs[id].attr_name;
-            Index idx(table.table_name, table.attrs[id].attr_name, index_name);
+            Index idx(index_name,table.table_name,table.attrs[id].attr_name);
 
             //catalog create index
             CTM.CreateIndex(idx);
@@ -39,6 +40,7 @@ void API_DropTable(string table_name)
     }
     Table tb = CTM.ReadTable(table_name);
     CTM.DropTable(tb);
+    RCM.DropRecordFile(tb);
     cout << "QUERY OK, 0 rows affected" << endl;
 }
 
@@ -97,6 +99,7 @@ void API_DropIndex(string table_name, string index_name)
 void API_Insert(Table &table ,Record& record)
 {
     RCM.Insert(table,record);
+    //插入index
 }
 
 
@@ -289,34 +292,35 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
     {
         if(RCM.IsValid(table,i))
         {
-            Record record=RCM.ReadRecord(table,i);
+            Record record;
+            RCM.ReadRecord(table,i,record);
             for(int j=0;j<attrNo.size();j++)
             {
-                if(record.null[j]==true)
+                int index=attrNo[j];
+                if(record.null[index]==true)
                 {
                     cout<<"\t";
                 }
                 else 
                 {
-                    if(table.attrs[j].attr_type==INT)
+                    if (table.attrs[index].attr_type == INT)
                     {
-                        cout<<*(int *)(record.atts[j].data())<<"\t";
+                        cout<<*(int *)(record.atts[index].data())<<"\t";
                     }
-                    else if (table.attrs[j].attr_type==FLOAT)
+                    else if (table.attrs[index].attr_type == FLOAT)
                     {
-                        cout << *(float *)(record.atts[j].data()) << "\t";
+                        cout << *(float *)(record.atts[index].data()) << "\t";
                     }
                     else 
                     {
-                        for (int j = 0; j < table.attrs[j].attr_type;j++)
-                        {
-                            cout<<*(record.atts.data()+j);
-                        }
-                        cout<<"\t";
+                        char term[256];
+                        memcpy(term, record.atts[index].data(), table.attrs[index].attr_type);
+                        term[table.attrs[index].attr_type]='\0';
+                        cout<< string(term)<<"\t";
                     }
                 }
-                cout<<endl;
             }
+            cout << endl;
         }
     }
     cout << "QUERY OK, 0 rows affected" << endl;

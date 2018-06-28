@@ -17,6 +17,7 @@ int CatalogManager::CreateTable(Table table)
         return -1;
     }
     char newData[BlockMaxSize];
+    char unique[4]={0};
     *(short *)(newData + AttNumPos) = table.attr_num;
     bool primaryDef = false;
     short dataPos = TableAttPos + 6 * table.attr_num;
@@ -35,7 +36,7 @@ int CatalogManager::CreateTable(Table table)
         }
         else if (table.attrs[i].attr_key_type == UNIQUE)
         {
-            *(newData + UniquePos + i / 4) |= bitMap[i % 4];
+            unique[i/8] |= bitMap[i % 8];
         }
         short length = table.attrs[i].attr_name.size();
         short type = table.attrs[i].attr_type;
@@ -46,6 +47,7 @@ int CatalogManager::CreateTable(Table table)
         memcpy(newData + dataPos, attName, length);
         dataPos += length;
     }
+    memcpy(newData+UniquePos,unique,4);
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
     IndexInit(name);
     bf.Unlock(blockNum);
@@ -103,11 +105,12 @@ Table CatalogManager::ReadTable(std::string name)
         short type = *(short *)(data + TableAttPos + i * 6 + 4);
         char attName[20];
         memcpy(attName, data + pos, length);
+        attName[length]='\0';
         std::string attNameS(attName);
         int keyType;
         if (primaryNum == i)
             keyType = PRIMARY;
-        else if (*(uniqueMap + i / 4) & bitMap[i % 4])
+        else if (*(uniqueMap + i / 8) & bitMap[i % 8])
             keyType = UNIQUE;
         else
             keyType = OTHER;

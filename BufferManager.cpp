@@ -73,12 +73,12 @@ void BlockNode::WriteBack()
     // std::cout<<"firstblock: "<<*(short*)newData<<std::endl;
     // ifile.close();
 
-    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
     std::cout<<"state: "<<file.good()<<std::endl;
     if(!file.good())
     {
         file.close();
-        file.open(fileName, std::ios::in | std::ios::out | std::ios::binary | std::ios::app);
+        file.open(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary | std::ios::app);
         file.clear();
     }
     file.seekp(offset * BlockMaxSize);
@@ -90,7 +90,7 @@ void BlockNode::WriteBack()
     file.close();
     std::cout<<"writeback"<<std::endl;
 
-    std::fstream ifile2(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream ifile2(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
     int index2;
     char newData2[BlockMaxSize];
     ifile2.seekg(0);
@@ -116,7 +116,7 @@ bool BufferManager::IsFull()
 
 bool BufferManager::FileExist(std::string name)
 {
-    std::fstream file(name);
+    std::fstream file(FILEDIR + name);
     if (file.good())
     {
         file.close();
@@ -150,7 +150,7 @@ void BufferManager::DropBlockLRU()
 
 int BufferManager::ReadBlockFromFile(std::string fileName, int offset)
 {
-    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
     int index;
     char newData[BlockMaxSize];
     file.seekg(offset * BlockMaxSize);
@@ -187,7 +187,7 @@ int BufferManager::FindBlock(std::string fileName, int offset)
 
 int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
 {
-    std::fstream file(fileName, std::ios::in | std::ios::out | std::ios::binary);
+    std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
     bool valid;
     int maxOffset;
     file.seekg(0);
@@ -277,5 +277,5 @@ void BufferManager::DropFile(std::string fileName)
             block[i].Drop();
         }
     }
-    remove(fileName.data());
+    remove((FILEDIR+fileName).data());
 }
