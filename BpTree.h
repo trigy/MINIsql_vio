@@ -6,7 +6,7 @@
 // #include"key.h"
 #define KEY const char*
 
-#define tipNum          10
+#define tipNum          1000
 
 #define ValidPos        0
 #define TypePos         1
@@ -25,15 +25,15 @@ class BpTree{
     int offset;
     int blockNum;
     short type;
-    char *data;
   public: 
+    char *data;
     BpTree(std::string name, int offset, int blockNum, short type);
     int BlockNum();
     int Offset();
     int InsertToLeaf(KEY key, int val);
     int InsertInThisNode(KEY key, int val);
-    int Split(int index);
-    bool Search(KEY key,int &index);
+    int Split(short index);
+    bool Search(KEY key,short &index);
     int SearchKey(KEY key, bool &exist);
     int DeleteKey(KEY key);
     int Reform();

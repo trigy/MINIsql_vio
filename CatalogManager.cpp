@@ -63,6 +63,7 @@ bool CatalogManager::IndexInit(std::string name)
     }
     short indexNum = 0;
     bf.WriteData(blockNum, (char *)&indexNum, IndexNumPos, 2);
+    bf.Unlock(blockNum);
     return 0;
 }
 
@@ -117,6 +118,7 @@ Table CatalogManager::ReadTable(std::string name)
         Attribute attr(attNameS, type, keyType, i);
         table.attrs.push_back(attr);
     }
+    bf.Unlock(blockNum);
     return table;
 }
 
@@ -130,9 +132,11 @@ int CatalogManager::IndexOffset(std::string tableName, std::string indexName)
         std::string str(data + IndexAttPos + WordMaxLength * 2 * i);
         if (str == indexName)
         {
+            bf.Unlock(blockNum);
             return i;
         }
     }
+    bf.Unlock(blockNum);
     return -1;
 }
 
@@ -146,9 +150,11 @@ int CatalogManager::IndexOffset2(std::string tableName, std::string attrName)
         std::string str(data + IndexAttPos + WordMaxLength * 2 * i + WordMaxLength);
         if (str == attrName)
         {
+            bf.Unlock(blockNum);
             return i;
         }
     }
+    bf.Unlock(blockNum);
     return -1;
 }
 
@@ -159,6 +165,7 @@ Index CatalogManager::ReadIndex(std::string tableName, std::string attrName, int
     char *data = bf.ReadBlockData(blockNum);
     std::string indexName(data + IndexAttPos + WordMaxLength * 2 * indexOffset);
     Index index(indexName, tableName, attrName);
+    bf.Unlock(blockNum);
     return index;
 }
 
@@ -178,6 +185,7 @@ void CatalogManager::DropIndex(std::string tableName, int indexOffset)
     (*(short *)(newData + IndexNumPos))--;
     memcpy(newData + IndexAttPos + indexOffset * 2 * WordMaxLength, data + IndexAttPos + (indexOffset + 1) * 2 * WordMaxLength, BlockMaxSize - (IndexAttPos + indexOffset * 2 * WordMaxLength));
     bf.WriteData(blockNum, newData, 0, MaxBlockNum);
+    bf.Unlock(blockNum);
 }
 
 int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
@@ -186,9 +194,10 @@ int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
     int blockNum = bf.FindBlock(name, 1);
     char *data = bf.ReadBlockData(blockNum);
     short indexNum=*(short*)(data+IndexNumPos);
-    cout<<indexNum<<endl;
+    // cout<<indexNum<<endl;
     if(indexNum==0)
     {
+        bf.Unlock(blockNum);
         return 0;
     }
     for(int i=0;i<indexNum;i++)
@@ -201,5 +210,6 @@ int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
         // cout << index.attr_name << endl;
         indexList.push_back(index);
     }
+    bf.Unlock(blockNum);
     return 1;
 }

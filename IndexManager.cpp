@@ -12,10 +12,11 @@ void IndexManager::CreateIndexHead(Index index, short type)
     std::string name = GetFileName(index);
     int blockNum = bf.AddNewBlockToFile(name, 0);
     char newData[BlockMaxSize];
-    *(int *)(newData) = -1;
+    *(int *)(newData + MaxOffsetPos_IM) = 0;
     *(short *)(newData + TypePos_IM) = type;
     *(int *)(newData + RootPos_IM) = 0;
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
+    bf.Unlock(blockNum);
 }
 
 void IndexManager::Insert(Index index, char *key, int val)
@@ -49,12 +50,18 @@ void IndexManager::Insert(Index index, char *key, int val)
     // cout << "rootOffset: " << rootOffset << endl;
     BpTree root(name, rootOffset, rootNum, type);
     int newRoot = root.InsertToLeaf(key, val);
-    cout<<"newRoot: "<<newRoot<<endl;
+    // cout<<"newRoot: "<<newRoot<<endl;
     bf.Unlock(rootNum);
+    if(newRoot==-1)
+    {
+        bf.Unlock(blockNum);
+        cerr<<"ERROR"<<endl;
+        return;
+    }
     if (newRoot != 0)
         bf.WriteData(blockNum, (char *)&newRoot, RootPos_IM, 4);
-        maxOffset++;
-    bf.WriteData(blockNum,(char*)&maxOffset,MaxOffsetPos_IM,4);
+    //     maxOffset++;
+    // bf.WriteData(blockNum,(char*)&maxOffset,MaxOffsetPos_IM,4);
     bf.Unlock(blockNum);
 }
 
@@ -66,7 +73,7 @@ int IndexManager::Search(Index index, char *key, bool &exist)
     short type = *(short *)(fileHead + TypePos_IM);
     int rootOffset, rootNum;
     rootOffset = *(int *)(fileHead + RootPos_IM);
-
+    bf.Unlock(blockNum);
     // char result[BlockMaxSize];
 
     if (rootOffset == 0)
@@ -102,4 +109,88 @@ void IndexManager::Delete(Index index, char *key)
             bf.WriteData(blockNum, (char *)&newRoot, RootPos_IM, 4);
     }
     bf.Unlock(blockNum);
+}
+
+void IndexManager::SearchLarger(Index index, char* key, vector<int> &valList,bool isEqual)
+{
+    std::string name = GetFileName(index);
+    int blockNum = bf.FindBlock(name, 0);
+    char *fileHead = bf.ReadBlockData(blockNum);
+    short type = *(short *)(fileHead + TypePos_IM);
+    int rootOffset;
+    rootOffset = *(int *)(fileHead + RootPos_IM);
+    SearchLarger(name,rootOffset,key,type,valList,isEqual);
+    bf.Unlock(blockNum);
+    
+}
+
+void IndexManager::SearchLarger(std::string name, int offset, char *key, short type, vector<int> &valList, bool isEqual)
+{
+    int blockNum = bf.FindBlock(name, offset);
+    BpTree bp(name, offset, blockNum, type);
+    short indexNum;
+    bool exist = bp.Search(key, indexNum);
+    if (*(bool *)(bp.data + TypePos) == false)
+    {
+        int of = *(int *)(bp.data + BlockAttSpace + indexNum * (KeyLength + 4) + KeyLength);
+        SearchLarger(name, of, key, type, valList, isEqual);
+        for (short i = indexNum + 1; i < *(short *)(bp.data + StorePos); i++)
+        {
+            int cof = *(int *)(bp.data + BlockAttSpace + i * (KeyLength + 4) + KeyLength);
+            int childNum = bf.FindBlock(name, cof);
+            BpTree child(name, cof, childNum, type);
+            short store = *(short *)(child.data + StorePos);
+            GetInterval(name, child.data, 0, store - 1, type, valList);
+            bf.Unlock(childNum);
+        }
+    }
+    else
+    {
+        short store = *(short *)(bp.data + StorePos);
+        if (isEqual && exist)
+        {        
+            GetInterval(name, bp.data, indexNum, store - 1, type, valList);
+        }
+        else
+        {
+            GetInterval(name, bp.data, indexNum+1, store - 1, type, valList);
+        }
+    }
+    bf.Unlock(blockNum);
+}
+
+void IndexManager::GetInterval(std::string name, char *data, short start, short end, short type, vector<int> &valList)
+{
+    for(short i=start;i<=end;i++)
+    {
+        if(*(bool*)(data+TypePos)==true)
+        {
+            valList.push_back(*(int*)(data+BlockAttSpace+i*(KeyLength+4)+KeyLength));
+        }
+        else 
+        {
+            int cof = *(int *)(data + BlockAttSpace + i * (KeyLength + 4) + KeyLength);
+            int childNum = bf.FindBlock(name, cof);
+            BpTree child(name, cof, childNum, type);
+            short store = *(short *)(child.data + StorePos);
+            GetInterval(name, child.data, 0, store - 1, type, valList);
+            bf.Unlock(childNum);
+        }
+    }
+}
+
+void IndexManager::DeleteAll(Index index)
+{
+    std::string name = GetFileName(index);
+    int blockNum = bf.FindBlock(name, 0);
+    int maxOffset=-1;
+    bf.WriteData(blockNum, (char*)&maxOffset, MaxOffsetPos_IM, 4);
+    bf.Unlock(blockNum);
+}
+
+void IndexManager::DropIndexFile(Index index)
+{
+    std::string name = GetFileName(index);
+    // std::cout<<name<<std::endl;
+    bf.DropFile(name);
 }

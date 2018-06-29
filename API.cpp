@@ -12,7 +12,7 @@ void API_CreateTable(Table &table)
         CTM.CreateTable(table);
         RCM.Create(table);
         int id = table.getPrimaryKeyId();
-        cout<<"primary key: "<<id<<endl;
+        // cout<<"primary key: "<<id<<endl;
         //create index automatically
         if (id != -1)
         {
@@ -41,6 +41,12 @@ void API_DropTable(string table_name)
     Table tb = CTM.ReadTable(table_name);
     CTM.DropTable(tb);
     RCM.DropRecordFile(tb);
+    vector<Index> indexList;
+    CTM.GetIndexList(tb,indexList);
+    for(int i=0;i<indexList.size();i++)
+    {
+        IDM.DropIndexFile(indexList[i]); 
+    }
     cout << "QUERY OK, 0 rows affected" << endl;
 }
 
@@ -70,18 +76,18 @@ void API_Create_Index(Index &index)
 }
 
 //when delete Index
-void API_DropIndex(Index index)
-{
-    //catalog drop index
-    int offset = CTM.IndexOffset(index.table_name, index.index_name);
-    if (offset != -1)
-    {
-        CTM.DropIndex(index.table_name, offset);
-        cout << "QUERY OK, 0 rows affected" << endl;
-    }
-    else
-        cout << "ERROR: Index " << index.index_name << " doesn't exist" << endl;
-}
+// void API_DropIndex(Index index)
+// {
+//     //catalog drop index
+//     int offset = CTM.IndexOffset(index.table_name, index.index_name);
+//     if (offset != -1)
+//     {
+//         CTM.DropIndex(index.table_name, offset);
+//         cout << "QUERY OK, 0 rows affected" << endl;
+//     }
+//     else
+//         cout << "ERROR: Index " << index.index_name << " doesn't exist" << endl;
+// }
 
 void API_DropIndex(string table_name, string index_name)
 {
@@ -114,165 +120,8 @@ void API_Insert(Table &table ,Record& record)
         }
     }
     //插入index
-    cout << "QUERY OK, 1 rows affected" << endl;
+    // cout << "QUERY OK, 1 rows affected" << endl;
 }
-
-
-
-// //tb
-// //insert
-// void API_Insert(string table_name, string Values) //error
-// {
-//     if (!CTM.TableExist(table_name))
-//     {
-//         cerr << "ERROR:"
-//              << "NO SUCH TABLE!" << endl;
-//         return;
-//     }
-//     Table tb = CTM.ReadTable(table_name);
-//     Record record;
-//     int i, j;
-//     int pos1 = 0, pos2;
-//     int end = 0;
-//     Values.erase(remove_if(Values.begin(), Values.end(), [](char x) { return isspace(x); }), Values.end());
-//     for (i = 0; i < tb.attr_num - 1; i++)
-//     {
-//         if (tb.attrs[i].attr_type == INT || tb.attrs[i].attr_type == FLOAT)
-//         {
-//             if (Values[pos1] == '\'')
-//             {
-//                 cerr << "ERROR:" << i << "'s attribute require number" << endl;
-//                 return;
-//             }
-//             pos2 = Values.find(',', pos1);
-//             if (pos2 == -1)
-//             {
-//                 cerr << "ERROR: not enough values" << endl;
-//                 return;
-//             }
-//             end = pos2;
-//             string x = Values.substr(pos1, pos2 - pos1);
-//             if (atof(x.c_str()) == 0)
-//             {
-//                 cerr << "ERROR:" << i << "'s attribute require number" << endl;
-//             }
-//             record.atts.push_back(x);
-//             pos1 = end + 1;
-//         }
-//         else
-//         {
-//             if (Values[pos1] != '\'')
-//             {
-//                 cerr << "ERROR:" << i << "'s attribute require char" << endl;
-//                 return;
-//             }
-//             pos2 = Values.find('\'', pos1 + 1);
-//             if (Values[pos2 + 1] != ',')
-//             {
-//                 cerr << "ERROR: Synaxt error near '''" << endl;
-//                 return;
-//             }
-//             end = pos2 + 1;
-//             string x = Values.substr(pos1 + 1, pos2 - 2 - pos1);
-//             if (x.length() != tb.attrs[i].attr_type)
-//             {
-//                 cerr << "ERROR: wrong bits char" << endl;
-//                 return;
-//             }
-//             record.atts.push_back(x);
-//             pos1 = end + 1;
-//         }
-//         //set null
-//         if (tb.attrs[i].attr_key_type != OTHER)
-//             record.null.push_back(false);
-//         else
-//             record.null.push_back(true);
-//     }
-//     if (tb.attrs[i].attr_type == INT || tb.attrs[i].attr_type == FLOAT)
-//     {
-//         if (Values[pos1] == '\'')
-//         {
-//             cerr << "ERROR:" << i << "'s attribute require number" << endl;
-//             return;
-//         }
-//         pos2 = Values.length();
-//         if (pos2 - pos1 <= 0)
-//         {
-//             cerr << "ERROR: not enough values" << endl;
-//             return;
-//         }
-//         string x = Values.substr(pos1, pos2 - pos1 + 1);
-//         if (atof(x.c_str()) == 0)
-//         {
-//             cerr << "ERROR:" << i << "'s attribute require number" << endl;
-//         }
-//         record.atts.push_back(x);
-//     }
-//     else
-//     {
-//         if (Values[pos1] != '\'')
-//         {
-//             cerr << "ERROR:" << i << "'s attribute require char" << endl;
-//             return;
-//         }
-//         pos2 = Values.find('\'', pos1 + 1);
-//         if (pos2 - pos1 <= 0)
-//         {
-//             cerr << "ERROR: not enough values" << endl;
-//             return;
-//         }
-//         string x = Values.substr(pos1 + 1, pos2 - 2 - pos1);
-//         if (x.length() != tb.attrs[i].attr_type)
-//         {
-//             cerr << "ERROR: wrong bits char" << endl;
-//             return;
-//         }
-//         record.atts.push_back(x);
-//     }
-//     //set null
-//     if (tb.attrs[i].attr_key_type != OTHER)
-//         record.null.push_back(false);
-//     else
-//         record.null.push_back(true);
-//     for (i = 0; i < tb.attr_num; i++)
-//     {
-//         //check all attr
-//         if (tb.attrs[i].attr_key_type == PRIMARY)
-//         {
-//             //get index_name
-//             int offset = CTM.IndexOffset(tb.table_name, tb.attrs[i].attr_name);
-//             Index idx = CTM.ReadIndex(tb.table_name, tb.attrs[i].attr_name, offset);
-//             //search if same name
-//             vector<int> v0 = Select(idx.index_name, "==", record.atts[i]);
-//             // vector<int> v0 = Find_indices(index_name, "=", tb.attr_values[i]);
-//             if (!v0.empty()) //if cover
-//             {
-//                 cout << "ERROR: Duplicate entry  for key 'Primary'" << endl;
-//                 return;
-//             }
-//         }
-//         else if (tb.attrs[i].attr_key_type == UNIQUE)
-//         {
-//             int offset = CTM.IndexOffset(tb.table_name, tb.attrs[i].attr_name);
-//             if (offset != -1)
-//             {
-//                 Index idx = CTM.ReadIndex(tb.table_name, tb.attrs[i].attr_name, offset);
-
-//                 vector<int> v0 = Select(idx.index_name, "==", record.atts[i]);
-//                 // vector<int> v0 = Find_indices(index_name, "=", tb.attr_values[i]);
-//                 if (!v0.empty()) //if cover
-//                 {
-//                     cout << "ERROR: Duplicate entry  for key 'unique'" << endl;
-//                     return;
-//                 }
-//             }
-//         }
-//     }
-//     //insert successfully
-//     RCM.Insert(tb, record);
-//     cout << "Query OK, 1 row affected\n"
-//          << endl;
-// }
 
 void API_SelectAll(Table &table, vector<string> &selectAttr)
 {
@@ -303,6 +152,7 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
     }
     cout<<endl;
     int maxRecord=RCM.MaxOffset(table);
+    std::cout<<"table has "<<maxRecord<<" records"<<std::endl;
     int num=0;
     for(int i=0;i<maxRecord;i++)
     {
@@ -339,7 +189,7 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
                 }
             }
             cout << endl;
-        }
+        }   
     }
     cout << "QUERY OK, 0 rows affected" << endl;
 }
@@ -405,7 +255,12 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
         }
     }
     vector<int> selectOffset;
+    vector<int> findCount;
     int maxRecord = RCM.MaxOffset(table);
+    for(int i=0;i<maxRecord;i++)
+    {
+        findCount.push_back(0);
+    }
     for(int i=0;i<cl.size();i++)
     {
         bool find = false;
@@ -418,21 +273,50 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
                 if(id>=0) //如果在这个属性上建立了索引
                 {
                     Index index = CTM.ReadIndex(table.table_name, table.attrs[j].attr_name,id);
-                    bool exist;
-                    int rf=IDM.Search(index,cl[i].cmp_value,exist);
-                    switch(cl[i].operation)
-                    {
-                        case EQU:   if(exist)
-                                        selectOffset.push_back(rf);
-                                    break;
-                        case NEQ:   if(!exist)
-                                        selectOffset.push_back(rf);
-                                    break;
-                        case LGE:   if(exist)
+                        if(cl[i].operation==EQU)
+                        {
+                            bool exist;
+                            int rf = IDM.Search(index, cl[i].cmp_value, exist);
+                            if (exist)
+                            {
+                                findCount[rf-1]++;
+                                if (findCount[rf-1] == cl.size())
+                                {
+                                    selectOffset.push_back(rf-1);
+                                }        
+                            }
+                    
+                        }
+                        else if (cl[i].operation==NEQ)
+                        {
+                            bool exist;
+                            int rf = IDM.Search(index, cl[i].cmp_value, exist);
+                            for(int i=0;i<findCount.size();i++)
+                            {
+                                if(i!=rf-1||!exist)
+                                {
+                                    findCount[i]++;
+                                    if (findCount[i] == cl.size())
                                     {
-                                        
+                                        selectOffset.push_back(i);
                                     }
-                    }
+                                }
+                            }
+                        }
+                        else if (cl[i].operation==LGE)
+                        {
+                            vector<int>valList;
+                            IDM.SearchLarger(index,cl[i].cmp_value,valList,true);
+                            for(int m=0;m<valList.size();m++)
+                            {
+                                // cout<<"val: "<<valList[m]-1<<endl;
+                                findCount[valList[m]-1]++;
+                                if (findCount[valList[m]-1] == cl.size())
+                                {
+                                    selectOffset.push_back(valList[m]-1);
+                                }
+                            }
+                        }                         
                 }
                 else //如果没有建立索引
                 {
@@ -510,6 +394,12 @@ void API_DeleteAll(Table &table)
     for (int i = 0; i <= maxRecord; i++)
     {
         RCM.Delete(table,i);
+    }
+    vector<Index> indexList;
+    CTM.GetIndexList(table,indexList);
+    for(int i=0;i<indexList.size();i++)
+    {
+        IDM.DropIndexFile(indexList[i]);
     }
     cout << "QUERY OK, 0 rows affected" << endl;
 }

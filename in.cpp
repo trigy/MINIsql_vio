@@ -1,6 +1,7 @@
 #include<iostream>
 #include<string>
 #include<vector>
+#include<ctime>
 #include"Minisql.h"
 #include"API.h"
 
@@ -69,7 +70,8 @@ vector<string> GetTerm(string SQLSentence)
             if (SQLSentence[i+1] == '=' || SQLSentence[i+1] == '<' || SQLSentence[i+1] == '>')
             {
                 term.push_back(SQLSentence.substr(i, 2));
-                start = i + 2;
+                i++;
+                start = i + 1;
                 count = 0;
             }
             else 
@@ -235,11 +237,11 @@ bool GetAttrValue(string term, short type,char* dir)
 int Interpreter(string input)
 {
     vector<string> term = GetTerm(input);
-    for (int i = 0; i < term.size(); i++)
-    {
-        cout << "[" << term[i] << "]";
-    }
-    cout << endl;
+    // for (int i = 0; i < term.size(); i++)
+    // {
+    //     cout << "[" << term[i] << "]";
+    // }
+    // cout << endl;
     if (term[0] == "create")
     {
         if (term[1] == "table")
@@ -739,11 +741,15 @@ int main()
     // string a="2155  4244 53333";
     while(1)
     {
+        cout<<"minisql> ";
         string a=getInput();
+        clock_t start=clock();
         if(Interpreter(a)==-2)
         {
             break;
         }
+        clock_t end=clock();
+        cout<<"takes "<<((double)(end-start)/CLOCKS_PER_SEC)<<" second(s)"<<endl;
     }
     bf.WriteBackAllDirtyBlock();
 }

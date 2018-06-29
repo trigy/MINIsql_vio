@@ -74,7 +74,7 @@ void BlockNode::WriteBack()
     // ifile.close();
 
     std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
-    std::cout<<"state: "<<file.good()<<std::endl;
+    // std::cout<<"state: "<<file.good()<<std::endl;
     if(!file.good())
     {
         file.close();
@@ -82,22 +82,22 @@ void BlockNode::WriteBack()
         file.clear();
     }
     file.seekp(offset * BlockMaxSize);
-    std::cout << "offset: " << (offset * BlockMaxSize) << std::endl;
+    // std::cout << "offset: " << (offset * BlockMaxSize) << std::endl;
     file.write(data, BlockMaxSize);
     file.flush();
-    std::cout << "first: " << *(short *)data << std::endl;
+    // std::cout << "first: " << *(short *)data << std::endl;
     dirty = false;
     file.close();
-    std::cout<<"writeback"<<std::endl;
+    // std::cout<<"writeback"<<std::endl;
 
-    std::fstream ifile2(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
-    int index2;
-    char newData2[BlockMaxSize];
-    ifile2.seekg(0);
-    ifile2.read(newData2, BlockMaxSize);
-    std::cout << "firstblock: " << *(short *)newData2 << std::endl;
-    ifile2.close();
-    std::cout<<std::endl;
+    // std::fstream ifile2(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
+    // int index2;
+    // char newData2[BlockMaxSize];
+    // ifile2.seekg(0);
+    // ifile2.read(newData2, BlockMaxSize);
+    // std::cout << "firstblock: " << *(short *)newData2 << std::endl;
+    // ifile2.close();
+    // std::cout<<std::endl;
 }
 
 BufferManager::BufferManager()
@@ -145,8 +145,8 @@ void BufferManager::AdjustLRU(int index)
 void BufferManager::DropBlockLRU()
 {
     std::list<int>::iterator it = lruIndex.end();
-    while (block[*(--it)].IsPin())
-        ;
+    // while (block[*(--it)].IsPin());
+    --it;
     blankIndex = *it;
     if (block[*it].IsDirty())
     {
@@ -194,24 +194,12 @@ int BufferManager::FindBlock(std::string fileName, int offset)
 
 int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
 {
-    std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
-    bool valid;
-    int maxOffset;
-    file.seekg(0);
-    file.read((char *)&maxOffset, 4);
-    for (int i = 1; i < maxOffset; i++)
-    {
-        file.seekg(i * BlockMaxSize);
-        file.read((char *)&valid, 1);
-        if (valid == false)
-        {
-            file.close();
-            offset = i;
-            return ReadBlockFromFile(fileName, i);
-        }
-    }
-    file.close();
-    offset = maxOffset++;
+    int blockNum=FindBlock(fileName,0);
+    char* data=ReadBlockData(blockNum);
+    (*(int*)data)++;
+    offset = (*(int *)data)+1;
+    std::cout<<"offset: "<<offset<<std::endl;
+    Unlock(blockNum);
     return AddNewBlockToFile(fileName, offset);
 }
 
@@ -265,7 +253,7 @@ void BufferManager::WriteData(int index, char *newData, int start, int length)
 
 void BufferManager::WriteBackAllDirtyBlock()
 {
-    std::cout<<"called, store = "<<store<<std::endl;
+    // std::cout<<"called, store = "<<store<<std::endl;
     for (int i = 0; i < store; i++)
     {
         if (block[i].IsValid() && block[i].IsDirty())

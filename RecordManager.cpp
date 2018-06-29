@@ -40,7 +40,7 @@ bool RecordManager::IsValid(Table table, int recordOffset)
 
     int recordNum = bf.FindBlock(name, blockIndex);
     char *recordData = bf.ReadBlockData(recordNum);
-    bool valid = *(bool *)(recordData + recordOffset * lengthPerRecord + ValidPos);
+    bool valid = *(bool *)(recordData + recordOffsetInBlock * lengthPerRecord + ValidPos);
     bf.Unlock(recordNum);
     return valid;
 }
@@ -127,6 +127,7 @@ void RecordManager::ReadRecord(Table table, int recordOffset, Record& record)
     int recordPerBlock = BlockMaxSize / lengthPerRecord;
     int blockIndex = (recordOffset) / recordPerBlock + 1;
     int recordOffsetInBlock = (recordOffset) % recordPerBlock;
+    // std::cout<<"record in :"<<blockIndex<<"\t"<<recordOffsetInBlock<<endl;
     bf.Unlock(blockNum);
     int recordNum = bf.FindBlock(name, blockIndex);
     char *recordData = bf.ReadBlockData(recordNum);
