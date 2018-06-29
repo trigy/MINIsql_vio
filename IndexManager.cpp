@@ -159,6 +159,53 @@ void IndexManager::SearchLarger(std::string name, int offset, char *key, short t
     bf.Unlock(blockNum);
 }
 
+void IndexManager::SearchSmaller(Index index, char *key, vector<int> &valList, bool isEqual)
+{
+    std::string name = GetFileName(index);
+    int blockNum = bf.FindBlock(name, 0);
+    char *fileHead = bf.ReadBlockData(blockNum);
+    short type = *(short *)(fileHead + TypePos_IM);
+    int rootOffset;
+    rootOffset = *(int *)(fileHead + RootPos_IM);
+    SearchSmaller(name, rootOffset, key, type, valList, isEqual);
+    bf.Unlock(blockNum);
+}
+
+void IndexManager::SearchSmaller(std::string name, int offset, char *key, short type, vector<int> &valList, bool isEqual)
+{
+    int blockNum = bf.FindBlock(name, offset);
+    BpTree bp(name, offset, blockNum, type);
+    short indexNum;
+    bool exist = bp.Search(key, indexNum);
+    if (*(bool *)(bp.data + TypePos) == false)
+    {
+        for (short i = 0; i < indexNum; i++)
+        {
+            int cof = *(int *)(bp.data + BlockAttSpace + i * (KeyLength + 4) + KeyLength);
+            int childNum = bf.FindBlock(name, cof);
+            BpTree child(name, cof, childNum, type);
+            short store = *(short *)(child.data + StorePos);
+            GetInterval(name, child.data, 0, store - 1, type, valList);
+            bf.Unlock(childNum);
+        }
+        int of = *(int *)(bp.data + BlockAttSpace + indexNum * (KeyLength + 4) + KeyLength);
+        SearchSmaller(name, of, key, type, valList, isEqual);
+    }
+    else
+    {
+        short store = *(short *)(bp.data + StorePos);
+        if (isEqual && exist)
+        {
+            GetInterval(name, bp.data, 0, indexNum, type, valList);
+        }
+        else
+        {
+            GetInterval(name, bp.data, 0, indexNum-1, type, valList);
+        }
+    }
+    bf.Unlock(blockNum);
+}
+
 void IndexManager::GetInterval(std::string name, char *data, short start, short end, short type, vector<int> &valList)
 {
     for(short i=start;i<=end;i++)

@@ -16,6 +16,7 @@ class IndexManager{
   private:
     void GetInterval(std::string name, char *data, short start, short end, short type, vector<int> &valList);
     void SearchLarger(std::string name, int offset, char *key,short type, vector<int> &valList, bool isEqual);
+    void SearchSmaller(std::string name, int offset, char *key, short type, vector<int> &valList, bool isEqual);
   public:
     std::string GetFileName(Index index);
     void CreateIndexHead(Index index, short type);

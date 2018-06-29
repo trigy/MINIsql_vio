@@ -309,14 +309,52 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
                             IDM.SearchLarger(index,cl[i].cmp_value,valList,true);
                             for(int m=0;m<valList.size();m++)
                             {
-                                // cout<<"val: "<<valList[m]-1<<endl;
                                 findCount[valList[m]-1]++;
                                 if (findCount[valList[m]-1] == cl.size())
                                 {
                                     selectOffset.push_back(valList[m]-1);
                                 }
                             }
-                        }                         
+                        }
+                        else if(cl[i].operation==SME)                         
+                        {
+                            vector<int> valList;
+                            IDM.SearchSmaller(index, cl[i].cmp_value, valList, true);
+                            for (int m = 0; m < valList.size(); m++)
+                            {
+                                findCount[valList[m] - 1]++;
+                                if (findCount[valList[m] - 1] == cl.size())
+                                {
+                                    selectOffset.push_back(valList[m] - 1);
+                                }
+                            }
+                        }
+                        else if (cl[i].operation == LRG)
+                        {
+                            vector<int> valList;
+                            IDM.SearchLarger(index, cl[i].cmp_value, valList, false);
+                            for (int m = 0; m < valList.size(); m++)
+                            {
+                                findCount[valList[m] - 1]++;
+                                if (findCount[valList[m] - 1] == cl.size())
+                                {
+                                    selectOffset.push_back(valList[m] - 1);
+                                }
+                            }
+                        }
+                        else if (cl[i].operation == SML)
+                        {
+                            vector<int> valList;
+                            IDM.SearchSmaller(index, cl[i].cmp_value, valList, false);
+                            for (int m = 0; m < valList.size(); m++)
+                            {
+                                findCount[valList[m] - 1]++;
+                                if (findCount[valList[m] - 1] == cl.size())
+                                {
+                                    selectOffset.push_back(valList[m] - 1);
+                                }
+                            }
+                        }
                 }
                 else //如果没有建立索引
                 {
@@ -326,10 +364,15 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
                         {
                             Record record;
                             RCM.ReadRecord(table,k,record);
-                            switch(cl[i].operation)
+                            int res = cmp(record.atts[j], cl[i].cmp_value, table.attrs[j].attr_type);
+                            if ((cl[i].operation == EQU && res == 0) || (cl[i].operation == NEQ && res != 0) || (cl[i].operation == LGE && res >= 0) 
+                            || (cl[i].operation == SME && res <= 0) || (cl[i].operation == LRG && res > 0) || (cl[i].operation == SML && res < 0))
                             {
-                                case EQU:   if(!cmp(record.atts[j],cl[i].cmp_value,table.attrs[j].attr_type))
-                                                selectOffset.push_back(k);
+                                findCount[k]++;
+                                if(findCount[k]==cl.size())
+                                {
+                                    selectOffset.push_back(k);
+                                }
                             }
                         }
                     }
@@ -362,7 +405,7 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
             int index = attrNo[j];
             if (record.null[index] == true)
             {
-                cout << "\t";
+                cout << "NULL\t";
             }
             else
             {

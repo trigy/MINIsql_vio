@@ -249,11 +249,11 @@ int Interpreter(string input)
             Table table;
             table.table_name = term[2];
             table.attr_num = 0;
-            if (term[3] == "{")
+            if (term[3] == "(")
             {
                 int i = 4;
                 bool primaryFlag = false;
-                while (term[i] != "}")
+                while (term[i] != ")")
                 {
                     for (int j = 0; j < table.attrs.size(); j++)
                     {
@@ -316,7 +316,7 @@ int Interpreter(string input)
                             cerr << "ERROR: stynax error near " << term[i + 1] << ": invalid type" << endl; //错误的类型
                             return -1;
                         }
-                        if (term[i + 1] == "unique")
+                        if (term[i] == "unique")
                         {
                             attr.attr_key_type = UNIQUE;
                             i++;
@@ -325,9 +325,9 @@ int Interpreter(string input)
                         table.attr_num++;
                     }
 
-                    if (term[i] == "}")
+                    if (term[i] == ")")
                         break;
-                    else if (term[i] == "," && term[i] != "}")
+                    else if (term[i] == "," && term[i] != ")")
                     {
                         i++;
                     }

@@ -198,7 +198,7 @@ int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
     char* data=ReadBlockData(blockNum);
     (*(int*)data)++;
     offset = (*(int *)data)+1;
-    std::cout<<"offset: "<<offset<<std::endl;
+    // std::cout<<"offset: "<<offset<<std::endl;
     Unlock(blockNum);
     return AddNewBlockToFile(fileName, offset);
 }
