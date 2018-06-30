@@ -20,7 +20,7 @@ class IndexManager{
   public:
     std::string GetFileName(Index index);
     void CreateIndexHead(Index index, short type);
-    void Insert(Index index, char *key, int val);
+    int Insert(Index index, char *key, int val);
     int Search(Index index, char *key, bool &exist);
     void Delete(Index index, char *key);
     void DeleteAll(Index index);

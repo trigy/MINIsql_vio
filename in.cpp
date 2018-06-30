@@ -53,28 +53,48 @@ vector<string> GetTerm(string SQLSentence)
     int start = 0;
     int count = 0;
     vector<string> term;
+    bool flag=false;
     for (int i = 0; i < SQLSentence.size(); i++)
     {
-        if (SQLSentence[i] == '{' || SQLSentence[i] == '}' || SQLSentence[i] == '(' || SQLSentence[i] == ')' || SQLSentence[i] == ';' || SQLSentence[i] == ',')
+        if (flag == true && SQLSentence[i] != '\'')
         {
-            if(count>0)
-                term.push_back(SQLSentence.substr(start, count));
-            term.push_back(SQLSentence.substr(i, 1));
-            start=i+1;
-            count=0;
+            count++;
         }
-        else if(SQLSentence[i]=='='||SQLSentence[i]=='<'||SQLSentence[i]=='>')
+        else if (flag == false && SQLSentence[i] == '\'')
         {
             if (count > 0)
                 term.push_back(SQLSentence.substr(start, count));
-            if (SQLSentence[i+1] == '=' || SQLSentence[i+1] == '<' || SQLSentence[i+1] == '>')
+            start = i;
+            count = 1;
+            flag=true;
+        }
+        else if (flag == true && SQLSentence[i] == '\'')
+        {
+            term.push_back(SQLSentence.substr(start, count+1));
+            start = i + 1;
+            count = 0;
+            flag=false;
+        }
+        else if (SQLSentence[i] == '{' || SQLSentence[i] == '}' || SQLSentence[i] == '(' || SQLSentence[i] == ')' || SQLSentence[i] == ';' || SQLSentence[i] == ',')
+        {
+            if (count > 0)
+                term.push_back(SQLSentence.substr(start, count));
+            term.push_back(SQLSentence.substr(i, 1));
+            start = i + 1;
+            count = 0;
+        }
+        else if (SQLSentence[i] == '=' || SQLSentence[i] == '<' || SQLSentence[i] == '>')
+        {
+            if (count > 0)
+                term.push_back(SQLSentence.substr(start, count));
+            if (SQLSentence[i + 1] == '=' || SQLSentence[i + 1] == '<' || SQLSentence[i + 1] == '>')
             {
                 term.push_back(SQLSentence.substr(i, 2));
                 i++;
                 start = i + 1;
                 count = 0;
             }
-            else 
+            else
             {
                 term.push_back(SQLSentence.substr(i, 1));
                 start = i + 1;
@@ -87,11 +107,11 @@ vector<string> GetTerm(string SQLSentence)
                 term.push_back(SQLSentence.substr(start, count));
             start = i + 1;
             count = 0;
-            }
-            else
-            {
-                count++;
-            }
+        }
+        else
+        {
+            count++;
+        }
     }
     return term;
 }
@@ -677,7 +697,7 @@ int Interpreter(string input)
         }
         else if (term[1] == "index" && term[3] == "on" && term[5] == ";") //drop index xxx on xxx;
         {
-            API_DropIndex(term[2], term[4]);
+            API_DropIndex(term[4], term[2]);
         }
     }
     else if (term[0] == "execfile")

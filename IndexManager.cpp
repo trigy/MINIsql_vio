@@ -19,7 +19,7 @@ void IndexManager::CreateIndexHead(Index index, short type)
     bf.Unlock(blockNum);
 }
 
-void IndexManager::Insert(Index index, char *key, int val)
+int IndexManager::Insert(Index index, char *key, int val)
 {
     std::string name = GetFileName(index);
     int blockNum = bf.FindBlock(name, 0);
@@ -55,8 +55,7 @@ void IndexManager::Insert(Index index, char *key, int val)
     if(newRoot==-1)
     {
         bf.Unlock(blockNum);
-        cerr<<"ERROR"<<endl;
-        return;
+        return -1;
     }
     if (newRoot != 0)
         bf.WriteData(blockNum, (char *)&newRoot, RootPos_IM, 4);

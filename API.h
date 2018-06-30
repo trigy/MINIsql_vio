@@ -49,6 +49,6 @@ void API_DeleteCon(Table &table, ConditionList &cl);
 // void API_DrawResult(Table& tb,Record res);
 
 // merry the time
-double Cal_time(long start, long end);
+// double Cal_time(long start, long end);
 
 #endif

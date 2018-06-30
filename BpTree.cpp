@@ -38,8 +38,9 @@ int cmp(char *data, KEY key, short type, short i)
             else if (*(a + j) < *(b + j))
                 return -1;
             else
-                return 0;
+               continue;;
         }
+        return 0;
     }
 }
 
