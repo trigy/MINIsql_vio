@@ -25,13 +25,13 @@ class BpTree{
     int offset;
     int blockNum;
     short type;
+    int InsertInThisNode(KEY key, int val);
   public: 
     char *data;
     BpTree(std::string name, int offset, int blockNum, short type);
     int BlockNum();
     int Offset();
     int InsertToLeaf(KEY key, int val);
-    int InsertInThisNode(KEY key, int val);
     int Split(short index);
     bool Search(KEY key,short &index);
     int SearchKey(KEY key, bool &exist);

@@ -11,7 +11,7 @@ std::string CatalogManager::GetFileName(std::string tableName)
 int CatalogManager::CreateTable(Table table)
 {
     std::string name = GetFileName(table.table_name);
-    int blockNum = bf.AddNewBlockToFile(name, 0);
+    int blockNum = bf.FindBlock(name, 0);
     if (blockNum == -1)
     {
         return -1;
@@ -56,11 +56,7 @@ int CatalogManager::CreateTable(Table table)
 
 bool CatalogManager::IndexInit(std::string name)
 {
-    int blockNum = bf.AddNewBlockToFile(name, 1);
-    if (blockNum == -1)
-    {
-        return 1;
-    }
+    int blockNum = bf.FindBlock(name, 1);
     short indexNum = 0;
     bf.WriteData(blockNum, (char *)&indexNum, IndexNumPos, 2);
     bf.Unlock(blockNum);
@@ -171,6 +167,7 @@ Index CatalogManager::ReadIndex(std::string tableName, std::string attrName, int
 
 void CatalogManager::DropTable(Table table)
 {
+    // std::cout<<"drop table"<<std::endl;
     std::string name = GetFileName(table.table_name);
     bf.DropFile(name);
 }

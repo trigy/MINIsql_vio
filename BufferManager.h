@@ -4,6 +4,7 @@
 #include<iostream>
 #include<fstream>
 #include<list>
+#include<string>
 #define BlockMaxSize 4096
 #define MaxBlockNum 1024
 #define FILEDIR "dbfile\\"
@@ -37,22 +38,23 @@ class BufferManager{
     std::list<int> lruIndex;
     int store;
     int blankIndex;
-  public:
-    BufferManager();
+    
     bool IsFull();
-    bool FileExist(std::string fileName);
-    int ReadBlockFromFile(std::string fileName, int offset);
     void AdjustLRU(int index);
     void DropBlockLRU();
-    void WriteBackAllDirtyBlock();
+    void Lock(int index);
+    int ReadBlockFromFile(std::string fileName, int offset);
+  public:
+    BufferManager();
     int FindBlock(std::string fileName, int offset);
     int FindFreeBlockFromFile(std::string fileName, int& offset);
-    int AddNewBlockToFile(std::string fileName, int offset);
     char* ReadBlockData(int index);
-    void Lock(int index);
-    void Unlock(int index);
     void WriteData(int index, char* newData, int start, int length);
+    void Unlock(int index);
+    void WriteBackAllDirtyBlock();
+    bool FileExist(std::string fileName);
     void DropFile(std::string fileName);
+    // int AddNewBlockToFile(std::string fileName, int offset);
 };
 
 #endif

@@ -65,16 +65,7 @@ void BlockNode::WriteData(int start, char *newData, int length)
 
 void BlockNode::WriteBack()
 {
-    // std::fstream ifile(fileName, std::ios::in | std::ios::out | std::ios::binary);
-    // int index;
-    // char newData[BlockMaxSize];
-    // ifile.seekg(0);
-    // ifile.read(newData, BlockMaxSize);
-    // std::cout<<"firstblock: "<<*(short*)newData<<std::endl;
-    // ifile.close();
-
     std::fstream file(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
-    // std::cout<<"state: "<<file.good()<<std::endl;
     if(!file.good())
     {
         file.close();
@@ -82,22 +73,10 @@ void BlockNode::WriteBack()
         file.clear();
     }
     file.seekp(offset * BlockMaxSize);
-    // std::cout << "offset: " << (offset * BlockMaxSize) << std::endl;
     file.write(data, BlockMaxSize);
     file.flush();
-    // std::cout << "first: " << *(short *)data << std::endl;
     dirty = false;
     file.close();
-    // std::cout<<"writeback"<<std::endl;
-
-    // std::fstream ifile2(FILEDIR + fileName, std::ios::in | std::ios::out | std::ios::binary);
-    // int index2;
-    // char newData2[BlockMaxSize];
-    // ifile2.seekg(0);
-    // ifile2.read(newData2, BlockMaxSize);
-    // std::cout << "firstblock: " << *(short *)newData2 << std::endl;
-    // ifile2.close();
-    // std::cout<<std::endl;
 }
 
 BufferManager::BufferManager()
@@ -116,7 +95,7 @@ bool BufferManager::IsFull()
 
 bool BufferManager::FileExist(std::string name)
 {
-    std::fstream file(FILEDIR + name);
+    std::fstream file(FILEDIR + name, std::ios::in | std::ios::out | std::ios::binary);
     if (file.good())
     {
         file.close();
@@ -129,6 +108,7 @@ bool BufferManager::FileExist(std::string name)
         {
             if (block[i].Match(name)&&block[i].IsValid())
             {
+                // std::cout<<i<<name<<std::endl;
                 return true;
             }
         }
@@ -151,7 +131,6 @@ void BufferManager::DropBlockLRU()
     {
         block[*it].WriteBack();
     }
-    // lruIndex.erase(it);
 }
 
 int BufferManager::ReadBlockFromFile(std::string fileName, int offset)
@@ -171,8 +150,9 @@ int BufferManager::ReadBlockFromFile(std::string fileName, int offset)
         index = store++;
     }
     block[index].Init(offset, newData, fileName);
+    // std::cout<<index<<std::endl;
     file.close();
-    lruIndex.push_front(index);
+    AdjustLRU(index);
     Lock(index);
     return index;
 }
@@ -181,8 +161,9 @@ int BufferManager::FindBlock(std::string fileName, int offset)
 {
     for (int i = 0; i < store; i++)
     {
-        if (block[i].Match(fileName, offset))
+        if (block[i].Match(fileName, offset)&&block[i].IsValid())
         {
+            // std::cout<<i<<std::endl;
             AdjustLRU(i);
             Lock(i);
             return i;
@@ -199,35 +180,7 @@ int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
     offset = (*(int *)data)+1;
     // std::cout<<"offset: "<<offset<<std::endl;
     Unlock(blockNum);
-    return AddNewBlockToFile(fileName, offset);
-}
-
-int BufferManager::AddNewBlockToFile(std::string fileName, int offset)
-{
-    int index;
-    char newData[BlockMaxSize];
-    if (IsFull() == true)
-    {
-        DropBlockLRU();
-        index = blankIndex;
-    }
-    else
-    {
-        index = store++;
-    }
-    // bool exist = FileExist(fileName);
-    // if (!(exist & offset))
-    // {
-    block[index].Init(offset, newData, fileName);
-    block[index].SetDirty(1);
-    lruIndex.push_front(index);
-    Lock(index);
-    return index;
-    // }
-    // else
-    // {
-    //     return -1;
-    // }
+    return FindBlock(fileName, offset);
 }
 
 char *BufferManager::ReadBlockData(int index)
@@ -252,7 +205,6 @@ void BufferManager::WriteData(int index, char *newData, int start, int length)
 
 void BufferManager::WriteBackAllDirtyBlock()
 {
-    // std::cout<<"called, store = "<<store<<std::endl;
     for (int i = 0; i < store; i++)
     {
         if (block[i].IsValid() && block[i].IsDirty())

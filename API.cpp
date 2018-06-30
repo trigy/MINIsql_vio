@@ -1,5 +1,43 @@
 #include "API.h"
 
+int cmp(char *da, char *db, short type)
+{
+    if (type == 0) //int
+    {
+        int a = *(int *)da;
+        int b = *(int *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else if (type == -1) //float
+    {
+        float a = *(float *)da;
+        float b = *(float *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else
+    {
+        for (short i = 0; i < type; i++)
+        {
+            if (*(da + i) > *(db + i))
+                return 1;
+            else if (*(da + i) < *(db + i))
+                return -1;
+            else
+                continue;
+        }
+        return 0;
+    }
+}
 //when create table
 void API_CreateTable(Table &table)
 {
@@ -39,7 +77,6 @@ void API_DropTable(string table_name)
         return;
     }
     Table tb = CTM.ReadTable(table_name);
-    CTM.DropTable(tb);
     RCM.DropRecordFile(tb);
     vector<Index> indexList;
     CTM.GetIndexList(tb,indexList);
@@ -47,6 +84,7 @@ void API_DropTable(string table_name)
     {
         IDM.DropIndexFile(indexList[i]); 
     }
+    CTM.DropTable(tb);
     cout << "QUERY OK, 0 rows affected" << endl;
 }
 
@@ -95,6 +133,12 @@ void API_DropIndex(string table_name, string index_name)
 void API_Insert(Table &table ,Record& record)
 {
     int rf=RCM.Insert(table,record);
+    // if(rf==-1)
+    // {
+    //     cerr << "ERROR: conflict with unique attribute" << endl;
+    //     return;
+    // }
+    // std::cout<<"rf:"<<rf<<endl;
     vector<Index> indexList;
     if(CTM.GetIndexList(table,indexList))
     {
@@ -104,9 +148,11 @@ void API_Insert(Table &table ,Record& record)
             {
                 if(table.attrs[j].attr_name==indexList[i].attr_name)
                 {
-                    if(IDM.Insert(indexList[i],record.atts[j],rf)==-1)
+                    // IDM.Insert(indexList[i], record.atts[j], rf); 
+                    if (IDM.Insert(indexList[i], record.atts[j], rf) == -1)
                     {
-                        RCM.Delete(table,rf);
+                        RCM.Delete(table,rf-1);
+                        cerr<<"ERROR: conflict with unique attribute"<<endl;
                         return;
                     }
                     break;
@@ -140,13 +186,13 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
             return;
         }
     }
+    int maxRecord=RCM.MaxOffset(table);
     cout<<"#\t";
     for(int i=0;i<selectAttr.size();i++)
     {
         cout<<selectAttr[i]<<"\t";
     }
     cout<<endl;
-    int maxRecord=RCM.MaxOffset(table);
     // std::cout<<"table has "<<maxRecord<<" records"<<std::endl;
     int num=0;
     for(int i=0;i<maxRecord;i++)
@@ -188,45 +234,6 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
         }   
     }
     cout << "QUERY OK, 0 rows affected" << endl;
-}
-
-int cmp(char *da, char* db, short type)
-{
-    if (type == 0) //int
-    {
-        int a = *(int *)da;
-        int b = *(int *)db;
-        if (a == b)
-            return 0;
-        else if (a < b)
-            return -1;
-        else
-            return 1;
-    }
-    else if (type == -1) //float
-    {
-        float a = *(float *)da;
-        float b = *(float *)db;
-        if (a == b)
-            return 0;
-        else if (a < b)
-            return -1;
-        else
-            return 1;
-    }
-    else
-    {
-        for (short i = 0; i < type; i++)
-        {
-            if (*(da + i) > *(db + i))
-                return 1;
-            else if (*(da + i) < *(db + i))
-                return -1;
-            else
-               continue;
-        }
-        return 0;
-    }
 }
 
 void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
@@ -383,7 +390,7 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
             return;
         }
     }
-
+    
     cout << "#\t";
     for (int i = 0; i < selectAttr.size(); i++)
     {
@@ -585,7 +592,7 @@ void API_DeleteCon(Table &table, ConditionList &cl)
             {
                 if (table.attrs[k].attr_name == indexList[j].attr_name)
                 {
-                    IDM.Delete(indexList[i],record.atts[k]);
+                    IDM.Delete(indexList[j], record.atts[k]);
                 }
             }  
         }

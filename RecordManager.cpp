@@ -1,7 +1,44 @@
 #include"RecordManager.h"
 
 RecordManager RCM;
-
+int rcmp(char *da, char *db, short type)
+{
+    if (type == 0) //int
+    {
+        int a = *(int *)da;
+        int b = *(int *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else if (type == -1) //float
+    {
+        float a = *(float *)da;
+        float b = *(float *)db;
+        if (a == b)
+            return 0;
+        else if (a < b)
+            return -1;
+        else
+            return 1;
+    }
+    else
+    {
+        for (short i = 0; i < type; i++)
+        {
+            if (*(da + i) > *(db + i))
+                return 1;
+            else if (*(da + i) < *(db + i))
+                return -1;
+            else
+                continue;
+        }
+        return 0;
+    }
+}
 std::string RecordManager::GetFileName(Table table)
 {
     return table.table_name + ".rec";
@@ -48,7 +85,7 @@ bool RecordManager::IsValid(Table table, int recordOffset)
 void RecordManager::Create(Table table)
 {
     std::string name = GetFileName(table);
-    int blockNum = bf.AddNewBlockToFile(name, 0);
+    int blockNum = bf.FindBlock(name, 0);
     int maxOffset = 0;
     int lengthPerRecord = AttPos + 4 * table.attrs.size();
     for (int i = 0; i < table.attr_num; i++)
@@ -58,7 +95,7 @@ void RecordManager::Create(Table table)
     bf.WriteData(blockNum, (char *)&maxOffset, MaxOffsetPos, 4);
     bf.WriteData(blockNum, (char *)&lengthPerRecord, LengthPos, 4);
     bf.Unlock(blockNum);
-    int recordNum = bf.AddNewBlockToFile(name, 1);
+    int recordNum = bf.FindBlock(name, 1);
     bf.Unlock(recordNum);
 }
 
@@ -92,7 +129,19 @@ int RecordManager::Insert(Table table, Record record)
         {
             *(newData + NullPos + i / 8) |= bitMap[i % 8];
         }
-        recordPos += length;
+        recordPos+=length;
+        // if(table.attrs[i].attr_key_type!=OTHER)
+        // {
+        //     for(int j=0;j<maxOffset;j++)
+        //     {
+        //         Record orecord;
+        //         ReadRecord(table,j,orecord);
+        //         if (!rcmp(record.atts[i],orecord.atts[i],type))
+        //         {
+        //             return -1;
+        //         }
+        //     }
+        // }
     }
     bf.WriteData(recordNum, newData, recordOffset * lengthPerRecord, lengthPerRecord);
     bf.Unlock(recordNum);

@@ -8,7 +8,6 @@ int cmp(char *data, KEY key, short type, short i)
     {
         int a = *(int *)(data + i * (KeyLength + 4));
         int b = *(int *)key;
-        // std::cout<<"a: "<<a<<"\tb: "<<b<<std::endl;
         if (a == b)
             return 0;
         else if (a < b)
@@ -63,16 +62,13 @@ int BpTree::InsertToLeaf(KEY key, int val)
 {
     if (*(bool *)(data + TypePos) == true)
     {
-        // std::cout<<"insert in this node"<<std::endl;
         return InsertInThisNode(key, val);
     }
     else
     {
         short index = 0;
         Search(key, index);
-        // std::cout<<"childIndex: "<<index<<std::endl;
         int childOffset = *(int *)(data + BlockAttSpace + index * (KeyLength + 4) + KeyLength);
-        // std::cout<<"childOffset: "<<childOffset<<std::endl;
         int childNum = bf.FindBlock(name, childOffset);
         BpTree child(name, childOffset, childNum, type);
         bf.Unlock(blockNum);
@@ -84,34 +80,23 @@ int BpTree::Split(short index)
 {
     int brotherOffset;
     int brotherNum = bf.FindFreeBlockFromFile(name, brotherOffset);
-    // std::cout<<"broNum: "<<brotherNum<<std::endl;
     BpTree bro(name, brotherOffset, brotherNum, type);
-    // char *broData = bf.ReadBlockData(brotherNum);
     char broData[BlockMaxSize];
     *(bool*)(broData+ValidPos)=true;
     *(bool*)(broData+TypePos)=*(bool*)(data+TypePos);
     *(short *)(broData + WidthPos) = *(short *)(data + WidthPos);
     *(short *)(broData + ParentPos) = *(short *)(data + ParentPos);
-    // bf.WriteData(brotherNum, broData, 0, BlockAttSpace);
-    // memcpy(broData,data,BlockAttSpace);
     if (index < 2)
         index == 2;
     else if (index == (*(short *)(data + StorePos)) - 1)
         index--;
-    // std::cout<<"index: "<<index<<std::endl;
-    // std::cout << "store: " << (*(int *)(data + StorePos)) << std::endl;
-    // bf.WriteData(brotherNum, broData + BlockAttSpace, splitIndex * (KeyLength + 4), *(int *)(data + StorePos) - splitIndex * (KeyLength + 4));
     memcpy(broData + BlockAttSpace, data + BlockAttSpace + index * (KeyLength + 4), ((*(short *)(data + StorePos) - index) * (KeyLength + 4)));
-    // std::cout << "blockNum:" << blockNum << std::endl;
     *(short *)(broData + StorePos)=*(short*)(data+StorePos);
     *(short *)(broData + StorePos) -= index;
     bf.WriteData(blockNum, (char *)&index, StorePos, 2);
-    // *(int *)(data + StorePos)=index;
-    // std::cout<<"brostore: "<<broStore<<std::endl;
     bf.WriteData(brotherNum,broData,0,BlockMaxSize);
     if (*(int *)(data + ParentPos) == 0)
     {
-        // std::cout<<"there"<<std::endl;
         int rootOffset;
         int rootNum = bf.FindFreeBlockFromFile(name, rootOffset);
         BpTree root(name, rootOffset, rootNum, type);
@@ -124,15 +109,9 @@ int BpTree::Split(short index)
         bf.WriteData(rootNum, (char *)&newWidth, WidthPos, 2);
         bf.WriteData(rootNum, (char *)&newStore, StorePos, 2);
 
-        // *(bool*)(rootData+ValidPos)=true;
-        // *(bool*)(rootData+TypePos)=false;
-        // *(short*)(rootData+WidthPos)=*(short*)(data+WidthPos);
-        // *(short*)(rootData+StorePos)=0;
         bf.WriteData(blockNum, (char *)&rootOffset, ParentPos, 4);
         bf.WriteData(brotherNum, (char *)&rootOffset, ParentPos, 4);
 
-        // *(int*)(data+ParentPos)=rootOffset;
-        // *(int*)(broData+ParentPos)=rootOffset;
         bf.Unlock(blockNum);
         bf.Unlock(brotherNum);
         root.InsertInThisNode(data + BlockAttSpace, offset);
@@ -143,7 +122,6 @@ int BpTree::Split(short index)
 
     else
     {
-        // std::cout << "there?" << std::endl;
         int parentOffset = *(int *)(data + ParentPos);
         int parentNum = bf.FindBlock(name, parentOffset);
         BpTree parent(name, parentOffset, parentNum, type);
@@ -165,29 +143,23 @@ int BpTree::InsertInThisNode(KEY key, int val)
 {
     short index;
     bool exist = Search(key, index);
-    if (*(bool *)(data + TypePos) == true && exist)
+    if (*(bool *)(data + TypePos) && exist)
     {
         return -1;
     }
     index++;
-    // std::cout<<"index: "<<index<<std::endl;
     char newData[BlockMaxSize];
 
     memcpy(newData, data, BlockAttSpace + index * (KeyLength + 4));
     memcpy(newData + BlockAttSpace + (index + 1) * (KeyLength + 4), data + BlockAttSpace + index * (KeyLength + 4), ((*(short *)(data + StorePos)) - index) * (KeyLength + 4));
     (*(short *)(newData + StorePos))++;
-    // std::cout << "store: " << (*(short *)(newData + StorePos)) << std::endl;
-    // std::cout << "width: " << (*(short *)(newData + WidthPos)) << std::endl;
     memcpy(newData + BlockAttSpace + index * (KeyLength + 4), key, KeyLength);
-    // std::cout << "offset: " << BlockAttSpace + index * (KeyLength + 4)<<std::endl;
-    // (char *)(newData + BlockAttSpace + index * (KeyLength + 4)) = key;
     * (int *)(newData + BlockAttSpace + index * (KeyLength + 4) + KeyLength) = val;
 
     bf.WriteData(blockNum, newData, 0, BlockMaxSize);
 
     if (*(short *)(data + StorePos) > *(short *)(data + WidthPos))
     {
-        // std::cout<<"split"<<std::endl;
         return Split(index);
     }
     bf.Unlock(blockNum);
@@ -197,7 +169,6 @@ int BpTree::InsertInThisNode(KEY key, int val)
 bool BpTree::Search(KEY key, short &index)
 {
     short store = *(short *)(data + StorePos);
-    // std::cout<<"store: "<<store<<std::endl;
     if (store < tipNum) //when the num of key is lower than setting number, we search one by one
     {
         for (short i = 0; i < store; i++)
@@ -272,12 +243,12 @@ int BpTree::DeleteKey(KEY key)
     {
         if (!exist)
         {
-            //error
+            return -1;
         }
-        char *newData;
+        char newData[BlockMaxSize];
         memcpy(newData, data, BlockAttSpace + index * (KeyLength + 4));
-        memcpy(newData + BlockAttSpace + index * (KeyLength + 4), data + BlockAttSpace + (index + 1) * (KeyLength + 4), (*(int *)(data + StorePos) - index - 1) * (KeyLength + 4));
-        *(short *)(newData + StorePos) = *(short *)(newData + StorePos) - 1;
+        memcpy(newData + BlockAttSpace + index * (KeyLength + 4), data + BlockAttSpace + (index + 1) * (KeyLength + 4), (*(short *)(data + StorePos) - index - 1) * (KeyLength + 4));
+        *(short *)(newData + StorePos) = (*(short *)(newData + StorePos)) - 1;
         bf.WriteData(blockNum, newData, 0, BlockMaxSize);
         if (*(short *)(newData + StorePos) == 1)
         {
@@ -300,25 +271,25 @@ int BpTree::DeleteKey(KEY key)
 
 int BpTree::Reform()
 {
+    if(*(bool*)(data+TypePos)==true)
+    {
+        return 0;
+    }
     short index;
     if (*(int *)(data + ParentPos) == 0)
     {
         int childOffset = *(int *)(data + BlockAttSpace + KeyLength);
-        int childNum = bf.FindBlock(name, childOffset);
-        bf.Unlock(blockNum);
-        char *childData = bf.ReadBlockData(childNum);
         bool newValid = false;
-        bf.WriteData(childNum, (char *)newValid, ValidPos, 1);
-        // *(bool *)childData = false;
-        bf.Unlock(childNum);
-        return childOffset;
+        bf.WriteData(blockNum, (char *)newValid, ValidPos, 1);
+        bf.Unlock(blockNum);
+        return childOffset;           
     }
     int parentOffset = *(int *)(data + ParentPos);
     int parentNum = bf.FindBlock(name, parentOffset);
     BpTree parent(name, parentOffset, parentNum, type);
-    parent.Search(*(KEY *)(data + BlockAttSpace), index);
+    parent.Search(data + BlockAttSpace, index);
     char *parentData = bf.ReadBlockData(parentNum);
-
+    short blockIndex=index;
     if (index == (*(short *)(parentData + StorePos)) - 1)
         index--;
     else
@@ -327,17 +298,19 @@ int BpTree::Reform()
     int brotherNum = bf.FindBlock(name, brotherOffset);
     BpTree brother(name, brotherOffset, brotherNum, type);
     char *brotherData = bf.ReadBlockData(brotherNum);
+    brother.InsertInThisNode(data + BlockAttSpace, *(int *)(data + BlockAttSpace + KeyLength));
 
-    brother.InsertInThisNode(brotherData + BlockAttSpace, *(int *)(brotherData + BlockAttSpace + KeyLength));
+    memcpy(parentData+BlockAttSpace+index*(KeyLength+4),brotherData+BlockAttSpace,KeyLength);
+
+    char npd[BlockMaxSize];
+    memcpy(npd, parentData, BlockAttSpace + blockIndex * (KeyLength + 4));
+    memcpy(npd + BlockAttSpace + blockIndex * (KeyLength + 4), parentData + BlockAttSpace + (blockIndex + 1) * (KeyLength + 4), (*(short *)(parentData + StorePos) - blockIndex - 1) * (KeyLength + 4));
+    (*(short*)(npd+StorePos))--;
+    bf.WriteData(parentNum,npd,0,BlockMaxSize);
     bool newValid = false;
-    bf.WriteData(blockNum, (char *)newValid, ValidPos, 1);
-    // *(bool*)(data+ValidPos)=false;
+    bf.WriteData(blockNum, (char *)&newValid, ValidPos, 1);
     bf.Unlock(blockNum);
-    if (*(short *)(brotherData + StorePos) > 3)
-    {
-        brother.Split(*(short *)(brotherData + StorePos) / 2);
-    }
-    if (*(short *)(brotherData + StorePos) == 1)
+    if (*(short *)(parentData + StorePos) == 1)
     {
         bf.Unlock(brotherNum);
         return parent.Reform();

@@ -130,9 +130,4 @@ class Record{
 static char bitMap[4]={
 	0x8, 0x4, 0x2, 0x1
 };
-
 #endif
-
-
-
-

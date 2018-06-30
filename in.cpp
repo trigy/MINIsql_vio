@@ -376,7 +376,7 @@ int Interpreter(string input)
             if (term[3] == "on" && term[5] == "(" && term[7] == ")" && term[8] == ";")
             {
                 Index index(term[2], term[4], term[6]);
-                // API_CreateIndex(index);
+                API_CreateIndex(index);
             }
             else
             {

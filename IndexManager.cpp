@@ -10,7 +10,7 @@ std::string IndexManager::GetFileName(Index index)
 void IndexManager::CreateIndexHead(Index index, short type)
 {
     std::string name = GetFileName(index);
-    int blockNum = bf.AddNewBlockToFile(name, 0);
+    int blockNum = bf.FindBlock(name, 0);
     char newData[BlockMaxSize];
     *(int *)(newData + MaxOffsetPos_IM) = 0;
     *(short *)(newData + TypePos_IM) = type;
@@ -31,7 +31,7 @@ int IndexManager::Insert(Index index, char *key, int val)
     // cout<<"rootOffset: "<<rootOffset<<endl;
     if (rootOffset == 0)
     {
-        rootNum = bf.AddNewBlockToFile(name, 1);
+        rootNum = bf.FindBlock(name, 1);
         // cout<<rootNum<<endl;
         rootOffset = 1;
         bf.WriteData(blockNum, (char *)&rootOffset, RootPos_IM, 4);
@@ -62,6 +62,7 @@ int IndexManager::Insert(Index index, char *key, int val)
     //     maxOffset++;
     // bf.WriteData(blockNum,(char*)&maxOffset,MaxOffsetPos_IM,4);
     bf.Unlock(blockNum);
+    return 0;
 }
 
 int IndexManager::Search(Index index, char *key, bool &exist) 
@@ -89,25 +90,33 @@ int IndexManager::Search(Index index, char *key, bool &exist)
     }
 }
 
-void IndexManager::Delete(Index index, char *key)
+int IndexManager::Delete(Index index, char *key)
 {
     std::string name = GetFileName(index);
     int blockNum = bf.FindBlock(name, 0);
+    // std::cout<<"blockNum: "<<blockNum<<std::endl;
     char *fileHead = bf.ReadBlockData(blockNum);
     short type = *(short *)(fileHead + TypePos_IM);
     int rootOffset, rootNum;
     rootOffset = *(int *)(fileHead + RootPos_IM);
-
+    // std::cout<<"delete rootoffset:"<<rootOffset<<std::endl;
     if (rootOffset != 0)
     {
         rootNum = bf.FindBlock(name, rootOffset);
         BpTree root(name, rootOffset, rootNum, type);
+        // std::cout<<"there"<<std::endl;
         int newRoot = root.DeleteKey(key);
         bf.Unlock(rootNum);
+        // std::cout<<"newRoot:"<<newRoot<<std::endl;
+        if(newRoot==-1)
+        {
+            return -1;
+        }
         if (newRoot != 0)
             bf.WriteData(blockNum, (char *)&newRoot, RootPos_IM, 4);
     }
     bf.Unlock(blockNum);
+    return 0;
 }
 
 void IndexManager::SearchLarger(Index index, char* key, vector<int> &valList,bool isEqual)
@@ -120,7 +129,6 @@ void IndexManager::SearchLarger(Index index, char* key, vector<int> &valList,boo
     rootOffset = *(int *)(fileHead + RootPos_IM);
     SearchLarger(name,rootOffset,key,type,valList,isEqual);
     bf.Unlock(blockNum);
-    
 }
 
 void IndexManager::SearchLarger(std::string name, int offset, char *key, short type, vector<int> &valList, bool isEqual)
