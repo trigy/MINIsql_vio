@@ -17,8 +17,6 @@ class BlockNode {
     char data[BlockMaxSize];
     std::string fileName;
   public:
-    // BlockNode();
-    // ~BlockNode();
     void Init(int o, char* d, std::string f);
     char* Data();
     bool IsValid();
@@ -41,7 +39,6 @@ class BufferManager{
     int blankIndex;
   public:
     BufferManager();
-    // ~BufferManager();
     bool IsFull();
     bool FileExist(std::string fileName);
     int ReadBlockFromFile(std::string fileName, int offset);

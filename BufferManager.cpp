@@ -145,8 +145,7 @@ void BufferManager::AdjustLRU(int index)
 void BufferManager::DropBlockLRU()
 {
     std::list<int>::iterator it = lruIndex.end();
-    // while (block[*(--it)].IsPin());
-    --it;
+    while (block[*(--it)].IsPin());
     blankIndex = *it;
     if (block[*it].IsDirty())
     {
