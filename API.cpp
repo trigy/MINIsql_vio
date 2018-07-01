@@ -101,7 +101,7 @@ void API_CreateIndex(Index &index)
 
         Table tb = CTM.ReadTable(index.table_name);
         for (i = 0; i < tb.attr_num; i++)
-            if (tb.attrs[i].attr_name == index.attr_name)
+            if (tb.attrs[i].attr_name == index.attr_name && tb.attrs[i].attr_key_type!=OTHER)
                 break;
         //      CreateIndex(values, index.index_name, tb.attrs[ID].attr_type - INT);
         IDM.CreateIndexHead(index, tb.attrs[i].attr_type);
@@ -140,26 +140,64 @@ void API_Insert(Table &table ,Record& record)
     // }
     // std::cout<<"rf:"<<rf<<endl;
     vector<Index> indexList;
-    if(CTM.GetIndexList(table,indexList))
+    CTM.GetIndexList(table,indexList);
+    for(int i=0;i<table.attrs.size();i++)
     {
-        for(int i=0;i<indexList.size();i++)
+        if(table.attrs[i].attr_key_type!=OTHER)
         {
-            for(int j=0;j<table.attrs.size();j++)
+            bool find=false;
+            for( int j=0;j<indexList.size();j++)
             {
-                if(table.attrs[j].attr_name==indexList[i].attr_name)
+                if (table.attrs[i].attr_name == indexList[j].attr_name)
                 {
-                    // IDM.Insert(indexList[i], record.atts[j], rf); 
-                    if (IDM.Insert(indexList[i], record.atts[j], rf) == -1)
+                    // IDM.Insert(indexList[i], record.atts[j], rf);
+                    if (IDM.Insert(indexList[j], record.atts[i], rf) == -1)
                     {
-                        RCM.Delete(table,rf-1);
-                        cerr<<"ERROR: conflict with unique attribute"<<endl;
+                        RCM.Delete(table, rf - 1);
+                        cerr << "ERROR: conflict with unique attribute" << endl;
                         return;
                     }
-                    break;
+                    find=true;
+                }
+            }
+            if(find)
+            {
+                continue;
+            }
+            for (int j = 0; j <RCM.MaxOffset(table)-1; j++)
+            {
+                Record orecord;
+                RCM.ReadRecord(table,j,orecord);
+                if (!cmp(record.atts[i],orecord.atts[i],table.attrs[i].attr_type))
+                {
+                    RCM.Delete(table, rf - 1);
+                    cerr << "ERROR: conflict with unique attribute" << endl;
+                    return;
                 }
             }
         }
     }
+
+    // if(CTM.GetIndexList(table,indexList))
+    // {
+    //     for(int i=0;i<indexList.size();i++)
+    //     {
+    //         for(int j=0;j<table.attrs.size();j++)
+    //         {
+    //             if(table.attrs[j].attr_name==indexList[i].attr_name)
+    //             {
+    //                 // IDM.Insert(indexList[i], record.atts[j], rf); 
+    //                 if (IDM.Insert(indexList[i], record.atts[j], rf) == -1)
+    //                 {
+    //                     RCM.Delete(table,rf-1);
+    //                     cerr<<"ERROR: conflict with unique attribute"<<endl;
+    //                     return;
+    //                 }
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
     //插入index
     // cout << "QUERY OK, 1 rows affected" << endl;
 }

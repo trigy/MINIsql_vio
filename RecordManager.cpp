@@ -1,44 +1,7 @@
 #include"RecordManager.h"
 
 RecordManager RCM;
-int rcmp(char *da, char *db, short type)
-{
-    if (type == 0) //int
-    {
-        int a = *(int *)da;
-        int b = *(int *)db;
-        if (a == b)
-            return 0;
-        else if (a < b)
-            return -1;
-        else
-            return 1;
-    }
-    else if (type == -1) //float
-    {
-        float a = *(float *)da;
-        float b = *(float *)db;
-        if (a == b)
-            return 0;
-        else if (a < b)
-            return -1;
-        else
-            return 1;
-    }
-    else
-    {
-        for (short i = 0; i < type; i++)
-        {
-            if (*(da + i) > *(db + i))
-                return 1;
-            else if (*(da + i) < *(db + i))
-                return -1;
-            else
-                continue;
-        }
-        return 0;
-    }
-}
+
 std::string RecordManager::GetFileName(Table table)
 {
     return table.table_name + ".rec";
