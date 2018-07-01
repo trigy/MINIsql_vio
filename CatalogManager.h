@@ -5,8 +5,6 @@
 #include"BufferManager.h"
 #include"Minisql.h"
 
-// extern BufferManager bf;
-
 #define AttNumPos     0
 #define PrimaryNumPos 2
 #define UniquePos     4

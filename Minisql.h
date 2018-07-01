@@ -18,7 +18,7 @@
 #define SME 3
 #define LRG 4
 #define SML 5 
-//Attribute's len has some problem
+
 using namespace std;
 class Attribute
 {
@@ -26,8 +26,7 @@ public:
 	string attr_name;
 	int attr_type;     //0:INT, -1:FLOAT OTHER:CHAR
     // char represent the length
-	int attr_key_type; //0:PRIMARY, 1:UNIQUE, 2:NULL(EMPTY)
-//	int attr_len;	   //CHAR:0. not char:1
+	int attr_key_type; //0:PRIMARY, 1:UNIQUE, 2:OTHER
     int attr_id;        //atribute's no.
 public:
   Attribute(){}
@@ -95,12 +94,6 @@ public:
 	int operation; //can read 0: "=", 1: "<>", 2: ">=", 3: "<=",4 :">", 5: "<"
 	char cmp_value[256] ; //compared object
 	Condition(){}
-	// Condition(string a, string b, string c)
-	// {
-	// 	attr_name = a;
-	// 	operation = b;
-	// 	cmp_value = c;
-	// }
 };
 typedef vector<Condition> ConditionList;
 class Index     //explain the search information

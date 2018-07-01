@@ -13,8 +13,6 @@
 #define WidthPos        2
 #define StorePos        4
 #define ParentPos       6
-// #define NextPos         10
-// #define BlockAttSpace   14
 #define BlockAttSpace   10
 
 #define KeyLength       (type > 0 ? type : 4)

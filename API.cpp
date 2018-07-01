@@ -50,16 +50,12 @@ void API_CreateTable(Table &table)
         CTM.CreateTable(table);
         RCM.Create(table);
         int id = table.getPrimaryKeyId();
-        // cout<<"primary key: "<<id<<endl;
-        //create index automatically
         if (id != -1)
         {
             string index_name = table.attrs[id].attr_name;
             Index idx(index_name,table.table_name,table.attrs[id].attr_name);
 
-            //catalog create index
             CTM.CreateIndex(idx);
-            //index manager create index
             IDM.CreateIndexHead(idx, table.attrs[id].attr_type);
         }
 
@@ -96,14 +92,10 @@ void API_CreateIndex(Index &index)
     {
         CTM.CreateIndex(index);
         int i;
-        //select firstly
-        //select* from table_name
-
         Table tb = CTM.ReadTable(index.table_name);
         for (i = 0; i < tb.attr_num; i++)
             if (tb.attrs[i].attr_name == index.attr_name && tb.attrs[i].attr_key_type!=OTHER)
                 break;
-        //      CreateIndex(values, index.index_name, tb.attrs[ID].attr_type - INT);
         IDM.CreateIndexHead(index, tb.attrs[i].attr_type);
         cout << "QUERY OK, 0 rows affected" << endl;
     }
@@ -115,7 +107,6 @@ void API_CreateIndex(Index &index)
 
 void API_DropIndex(string table_name, string index_name)
 {
-    //catalog drop index
     int offset = CTM.IndexOffset(table_name, index_name);
     if (offset != -1)
     {
@@ -133,12 +124,6 @@ void API_DropIndex(string table_name, string index_name)
 void API_Insert(Table &table ,Record& record)
 {
     int rf=RCM.Insert(table,record);
-    // if(rf==-1)
-    // {
-    //     cerr << "ERROR: conflict with unique attribute" << endl;
-    //     return;
-    // }
-    // std::cout<<"rf:"<<rf<<endl;
     vector<Index> indexList;
     CTM.GetIndexList(table,indexList);
     for(int i=0;i<table.attrs.size();i++)
@@ -150,7 +135,6 @@ void API_Insert(Table &table ,Record& record)
             {
                 if (table.attrs[i].attr_name == indexList[j].attr_name)
                 {
-                    // IDM.Insert(indexList[i], record.atts[j], rf);
                     if (IDM.Insert(indexList[j], record.atts[i], rf) == -1)
                     {
                         RCM.Delete(table, rf - 1);
@@ -177,29 +161,6 @@ void API_Insert(Table &table ,Record& record)
             }
         }
     }
-
-    // if(CTM.GetIndexList(table,indexList))
-    // {
-    //     for(int i=0;i<indexList.size();i++)
-    //     {
-    //         for(int j=0;j<table.attrs.size();j++)
-    //         {
-    //             if(table.attrs[j].attr_name==indexList[i].attr_name)
-    //             {
-    //                 // IDM.Insert(indexList[i], record.atts[j], rf); 
-    //                 if (IDM.Insert(indexList[i], record.atts[j], rf) == -1)
-    //                 {
-    //                     RCM.Delete(table,rf-1);
-    //                     cerr<<"ERROR: conflict with unique attribute"<<endl;
-    //                     return;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-    //插入index
-    // cout << "QUERY OK, 1 rows affected" << endl;
 }
 
 void API_SelectAll(Table &table, vector<string> &selectAttr)
@@ -214,7 +175,6 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
             if (table.attrs[j].attr_name == selectAttr[i])
             {
                 attrNo.push_back(j);
-                //不考虑重复的属性
                 find=true;
             }
         }
@@ -231,7 +191,6 @@ void API_SelectAll(Table &table, vector<string> &selectAttr)
         cout<<selectAttr[i]<<"\t";
     }
     cout<<endl;
-    // std::cout<<"table has "<<maxRecord<<" records"<<std::endl;
     int num=0;
     for(int i=0;i<maxRecord;i++)
     {
@@ -286,7 +245,6 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
             if (table.attrs[j].attr_name == selectAttr[i])
             {
                 attrNo.push_back(j);
-                //不考虑重复的属性
                 find = true;
             }
         }
@@ -311,7 +269,6 @@ void API_SelectCon(Table &table, vector<string> &selectAttr, ConditionList &cl)
             if (table.attrs[j].attr_name == cl[i].attr_name)
             {
                 int id=CTM.IndexOffset2(table.table_name,table.attrs[j].attr_name);
-                // cout<<id<<endl;
                 if(id>=0) //如果在这个属性上建立了索引
                 {
                     Index index = CTM.ReadIndex(table.table_name, table.attrs[j].attr_name,id);
@@ -507,7 +464,6 @@ void API_DeleteCon(Table &table, ConditionList &cl)
             if (table.attrs[j].attr_name == cl[i].attr_name)
             {
                 int id = CTM.IndexOffset2(table.table_name, table.attrs[j].attr_name);
-                // cout<<id<<endl;
                 if (id >= 0) //如果在这个属性上建立了索引
                 {
                     Index index = CTM.ReadIndex(table.table_name, table.attrs[j].attr_name, id);

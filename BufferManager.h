@@ -8,7 +8,7 @@
 #define BlockMaxSize 4096
 #define MaxBlockNum 256
 #define FILEDIR "dbfile\\"
-// #define MaxLength 20
+
 class BlockNode {
   private:
     bool valid;
@@ -54,7 +54,6 @@ class BufferManager{
     void WriteBackAllDirtyBlock();
     bool FileExist(std::string fileName);
     void DropFile(std::string fileName);
-    // int AddNewBlockToFile(std::string fileName, int offset);
 };
 
 #endif

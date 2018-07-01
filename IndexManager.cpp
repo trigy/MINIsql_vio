@@ -28,11 +28,9 @@ int IndexManager::Insert(Index index, char *key, int val)
     short type = *(short *)(fileHead + TypePos_IM);
     int rootOffset, rootNum;
     rootOffset = *(int *)(fileHead + RootPos_IM);
-    // cout<<"rootOffset: "<<rootOffset<<endl;
     if (rootOffset == 0)
     {
         rootNum = bf.FindBlock(name, 1);
-        // cout<<rootNum<<endl;
         rootOffset = 1;
         bf.WriteData(blockNum, (char *)&rootOffset, RootPos_IM, 4);
         char newData[MaxBlockNum];
@@ -47,10 +45,8 @@ int IndexManager::Insert(Index index, char *key, int val)
     {
         rootNum = bf.FindBlock(name, rootOffset);
     }
-    // cout << "rootOffset: " << rootOffset << endl;
     BpTree root(name, rootOffset, rootNum, type);
     int newRoot = root.InsertToLeaf(key, val);
-    // cout<<"newRoot: "<<newRoot<<endl;
     bf.Unlock(rootNum);
     if(newRoot==-1)
     {
@@ -59,8 +55,6 @@ int IndexManager::Insert(Index index, char *key, int val)
     }
     if (newRoot != 0)
         bf.WriteData(blockNum, (char *)&newRoot, RootPos_IM, 4);
-    //     maxOffset++;
-    // bf.WriteData(blockNum,(char*)&maxOffset,MaxOffsetPos_IM,4);
     bf.Unlock(blockNum);
     return 0;
 }
@@ -74,7 +68,6 @@ int IndexManager::Search(Index index, char *key, bool &exist)
     int rootOffset, rootNum;
     rootOffset = *(int *)(fileHead + RootPos_IM);
     bf.Unlock(blockNum);
-    // char result[BlockMaxSize];
 
     if (rootOffset == 0)
     {
@@ -94,20 +87,16 @@ int IndexManager::Delete(Index index, char *key)
 {
     std::string name = GetFileName(index);
     int blockNum = bf.FindBlock(name, 0);
-    // std::cout<<"blockNum: "<<blockNum<<std::endl;
     char *fileHead = bf.ReadBlockData(blockNum);
     short type = *(short *)(fileHead + TypePos_IM);
     int rootOffset, rootNum;
     rootOffset = *(int *)(fileHead + RootPos_IM);
-    // std::cout<<"delete rootoffset:"<<rootOffset<<std::endl;
     if (rootOffset != 0)
     {
         rootNum = bf.FindBlock(name, rootOffset);
         BpTree root(name, rootOffset, rootNum, type);
-        // std::cout<<"there"<<std::endl;
         int newRoot = root.DeleteKey(key);
         bf.Unlock(rootNum);
-        // std::cout<<"newRoot:"<<newRoot<<std::endl;
         if(newRoot==-1)
         {
             return -1;
@@ -245,6 +234,5 @@ void IndexManager::DeleteAll(Index index)
 void IndexManager::DropIndexFile(Index index)
 {
     std::string name = GetFileName(index);
-    // std::cout<<name<<std::endl;
     bf.DropFile(name);
 }

@@ -108,7 +108,6 @@ bool BufferManager::FileExist(std::string name)
         {
             if (block[i].Match(name)&&block[i].IsValid())
             {
-                // std::cout<<i<<name<<std::endl;
                 return true;
             }
         }
@@ -150,7 +149,6 @@ int BufferManager::ReadBlockFromFile(std::string fileName, int offset)
         index = store++;
     }
     block[index].Init(offset, newData, fileName);
-    // std::cout<<index<<std::endl;
     file.close();
     AdjustLRU(index);
     Lock(index);
@@ -163,7 +161,6 @@ int BufferManager::FindBlock(std::string fileName, int offset)
     {
         if (block[i].Match(fileName, offset)&&block[i].IsValid())
         {
-            // std::cout<<i<<std::endl;
             AdjustLRU(i);
             Lock(i);
             return i;
@@ -178,7 +175,6 @@ int BufferManager::FindFreeBlockFromFile(std::string fileName, int &offset)
     char* data=ReadBlockData(blockNum);
     (*(int*)data)++;
     offset = (*(int *)data)+1;
-    // std::cout<<"offset: "<<offset<<std::endl;
     Unlock(blockNum);
     return FindBlock(fileName, offset);
 }

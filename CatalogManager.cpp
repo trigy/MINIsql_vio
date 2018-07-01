@@ -167,7 +167,6 @@ Index CatalogManager::ReadIndex(std::string tableName, std::string attrName, int
 
 void CatalogManager::DropTable(Table table)
 {
-    // std::cout<<"drop table"<<std::endl;
     std::string name = GetFileName(table.table_name);
     bf.DropFile(name);
 }
@@ -191,7 +190,6 @@ int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
     int blockNum = bf.FindBlock(name, 1);
     char *data = bf.ReadBlockData(blockNum);
     short indexNum=*(short*)(data+IndexNumPos);
-    // cout<<indexNum<<endl;
     if(indexNum==0)
     {
         bf.Unlock(blockNum);
@@ -202,9 +200,7 @@ int CatalogManager::GetIndexList(Table table, vector<Index> &indexList)
         Index index;
         index.table_name=table.table_name;
         index.attr_name=string(data+IndexAttPos+WordMaxLength*i*2+WordMaxLength);
-        // cout<<index.attr_name<<endl;
         index.index_name=string(data+IndexAttPos+WordMaxLength*i*2);
-        // cout << index.attr_name << endl;
         indexList.push_back(index);
     }
     bf.Unlock(blockNum);
